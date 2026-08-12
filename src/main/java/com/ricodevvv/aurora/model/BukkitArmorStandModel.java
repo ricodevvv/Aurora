@@ -26,6 +26,7 @@ public class BukkitArmorStandModel implements Model {
         stand.setArms(false);
         stand.setSmall(small);
         stand.setMarker(false);
+        Entities.tag(stand);
         Entities.persist(stand);
         Entities.invulnerable(stand);
         Entities.collidable(stand, false);

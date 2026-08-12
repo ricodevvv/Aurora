@@ -63,6 +63,7 @@ public class Pet extends Cosmetic {
             Entities.scale(entity, petType.scale());
         }
 
+        Entities.tag(entity);
         Entities.disableAI(entity);
         Entities.silence(entity);
         Entities.invulnerable(entity);

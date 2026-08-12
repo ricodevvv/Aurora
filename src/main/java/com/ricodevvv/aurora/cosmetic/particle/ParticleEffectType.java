@@ -9,31 +9,44 @@ import org.bukkit.inventory.ItemStack;
 /** Definicion de un efecto de particulas equipable. */
 public class ParticleEffectType implements CosmeticType {
 
-    /** Cuando se dibuja el efecto. */
-    public enum Trigger {
-        /** Siempre. */
-        ALWAYS,
-        /** Solo cuando el jugador se esta moviendo (rastros, huellas). */
-        MOVING,
-        /** Solo cuando esta quieto (auras, circulos de invocacion). */
-        IDLE
-    }
-
     private final String id;
     private final String displayName;
     private final ItemStack icon;
-    private final EffectRenderer renderer;
+    private final EffectRenderer idleRenderer;
 
+    private EffectRenderer movingRenderer;
     private int interval = 1;
-    private Trigger trigger = Trigger.ALWAYS;
     private double range = 32;
     private String permission;
 
-    public ParticleEffectType(String id, String displayName, ItemStack icon, EffectRenderer renderer) {
+    /**
+     * @param id          id unico dentro de la categoria
+     * @param displayName nombre visible, acepta codigos con '&'
+     * @param icon        icono para el menu
+     * @param idleRenderer  como se dibuja con el jugador quieto (y por defecto
+     *                      tambien en movimiento, hasta que definas {@link #moving})
+     */
+    public ParticleEffectType(String id, String displayName, ItemStack icon, EffectRenderer idleRenderer) {
         this.id = id;
         this.displayName = displayName;
         this.icon = icon;
-        this.renderer = renderer;
+        this.idleRenderer = idleRenderer;
+    }
+
+    /**
+     * Define una variante distinta para cuando el jugador camina.
+     *
+     * <p>Esto es lo que hace que un efecto se sienta "vivo" y no un adorno
+     * pegado: un anillo de llamas quieto se convierte en dos estelas a los
+     * costados al correr, en vez de arrastrar el anillo entero. Si no la
+     * defines, se usa la misma en ambos estados.
+     *
+     * @param movingRenderer variante en movimiento
+     * @return este mismo tipo, para encadenar
+     */
+    public ParticleEffectType moving(EffectRenderer movingRenderer) {
+        this.movingRenderer = movingRenderer;
+        return this;
     }
 
     /**
@@ -45,11 +58,6 @@ public class ParticleEffectType implements CosmeticType {
      */
     public ParticleEffectType interval(int interval) {
         this.interval = Math.max(1, interval);
-        return this;
-    }
-
-    public ParticleEffectType trigger(Trigger trigger) {
-        this.trigger = trigger;
         return this;
     }
 
@@ -94,16 +102,18 @@ public class ParticleEffectType implements CosmeticType {
         return new ParticleEffect(player, this);
     }
 
-    public EffectRenderer renderer() {
-        return renderer;
+    /**
+     * Elige la variante que toca dibujar este tick.
+     *
+     * @param moving true si el jugador se esta desplazando
+     * @return la variante en movimiento si existe, si no la de reposo
+     */
+    public EffectRenderer renderer(boolean moving) {
+        return moving && movingRenderer != null ? movingRenderer : idleRenderer;
     }
 
     public int interval() {
         return interval;
-    }
-
-    public Trigger trigger() {
-        return trigger;
     }
 
     public double range() {

@@ -5,8 +5,8 @@ import com.ricodevvv.aurora.particle.ParticleType;
 import com.ricodevvv.aurora.particle.Particles;
 import com.ricodevvv.aurora.shape.Shapes;
 import com.ricodevvv.aurora.util.Entities;
-import com.ricodevvv.aurora.util.ServerVersion;
 import com.ricodevvv.aurora.util.Sounds;
+import com.ricodevvv.aurora.util.VectorMath;
 import org.bukkit.Location;
 import com.ricodevvv.aurora.model.Model;
 import com.ricodevvv.aurora.model.Models;
@@ -32,11 +32,30 @@ import java.util.concurrent.ThreadLocalRandom;
  */
 public class Balloon extends Cosmetic {
 
+    /** Amortiguacion de la inercia por tick. */
     private static final double INERTIA_DECAY = 0.95;
+    /** Flotabilidad: la inercia vertical nunca baja de esto. */
     private static final double LIFT = 0.1;
-    private static final double WIND_STRENGTH = 0.012;
+    /** Inercia vertical inicial, para que el globo suba de golpe al equiparlo. */
+    private static final double INITIAL_LIFT = 0.2;
+    private static final double WIND_STRENGTH = 0.01;
     private static final double TURBULENCE = 0.08;
-    private static final double SHOULDER_OFFSET = 0.7;
+    /** Amortiguacion del giro. */
+    private static final float ROTATION_DECAY = 0.98f;
+    /** El globo nunca deja de girar del todo. */
+    private static final float MIN_ROTATION_SPEED = 1.0f;
+    /** Cuanto del movimiento lateral se convierte en giro. */
+    private static final float ROTATION_MULTIPLIER = 1.0f;
+
+    /**
+     * Desplazamiento del ancla respecto al jugador, antes de rotarlo con su yaw.
+     *
+     * <p>La Y es CERO a proposito: el ancla va a la altura de los pies, no
+     * sobre la cabeza. El globo sube solo por flotabilidad hasta que la cuerda
+     * lo detiene. Anclarlo arriba lo deja casi inmovil, porque nace ya al
+     * limite de la cuerda y no le queda recorrido.
+     */
+    private static final Vector ANCHOR_OFFSET = new Vector(-0.8, 0.0, 0.2);
 
     private final BalloonType balloonType;
 
@@ -44,11 +63,12 @@ public class Balloon extends Cosmetic {
     private Entity leashAnchor;
 
     private final Location position = new Location(null, 0, 0, 0);
-    private final Vector inertia = new Vector(0, LIFT, 0);
+    private final Vector inertia = new Vector(0, INITIAL_LIFT, 0);
     private final Vector wind = new Vector(1, 0, 0.3);
 
     private double windPhase = ThreadLocalRandom.current().nextDouble() * Math.PI * 2;
     private float spin = ThreadLocalRandom.current().nextFloat();
+    private double angle;
 
     public Balloon(Player player, BalloonType type) {
         super(player, type);
@@ -83,6 +103,9 @@ public class Balloon extends Cosmetic {
     private void createLeashAnchor(Location at) {
         try {
             leashAnchor = at.getWorld().spawnEntity(at, Entities.type("RABBIT"));
+            // El orden importa: tag() primero, porque el listener de proteccion
+            // necesita la marca desde el primer tick de vida de la entidad.
+            Entities.tag(leashAnchor);
             Entities.baby(leashAnchor);
             Entities.invisible(leashAnchor);
             Entities.disableAI(leashAnchor);
@@ -144,10 +167,13 @@ public class Balloon extends Cosmetic {
 
         // El giro se alimenta del movimiento lateral, con minimo para que
         // nunca se quede completamente quieto.
-        spin *= 0.98f;
-        spin += (float) ((inertia.getX() - inertia.getZ()) * 8);
-        if (Math.abs(spin) < 0.6f) spin = spin >= 0 ? 0.6f : -0.6f;
-        position.setYaw(position.getYaw() + spin);
+        spin *= ROTATION_DECAY;
+        if (Math.abs(spin) < MIN_ROTATION_SPEED) {
+            spin = spin >= 0 ? MIN_ROTATION_SPEED : -MIN_ROTATION_SPEED;
+        }
+        angle += spin;
+        spin += (float) ((inertia.getX() - inertia.getZ()) * ROTATION_MULTIPLIER);
+        position.setYaw((float) angle);
 
         model.teleport(position);
         model.headYaw(position.getYaw());
@@ -171,14 +197,17 @@ public class Balloon extends Cosmetic {
                 .spawn(anchor, Shapes.line(new Vector(0, 0, 0), delta, 0.25));
     }
 
-    /** Punto de anclaje: el hombro del jugador, girado con su yaw. */
+    /**
+     * Punto de anclaje: el costado del jugador, girado con su yaw.
+     *
+     * @return posicion del ancla este tick
+     */
     private Location anchor() {
         Location base = player.getLocation();
-        double yaw = Math.toRadians(-base.getYaw());
-        // En 1.8 no hay mano secundaria, asi que siempre va del lado derecho.
-        double side = ServerVersion.isLegacy() ? SHOULDER_OFFSET : SHOULDER_OFFSET;
-        return base.clone().add(
-                Math.cos(yaw) * side, balloonType.height(), Math.sin(yaw) * side);
+        Vector offset = ANCHOR_OFFSET.clone();
+        VectorMath.rotateY(offset, Math.toRadians(-base.getYaw()));
+        return base.clone().add(offset.getX(),
+                offset.getY() + balloonType.height(), offset.getZ());
     }
 
     private void teleportTo(Location location) {
@@ -187,7 +216,7 @@ public class Balloon extends Cosmetic {
         position.setY(location.getY());
         position.setZ(location.getZ());
         inertia.setX(0);
-        inertia.setY(LIFT);
+        inertia.setY(INITIAL_LIFT);
         inertia.setZ(0);
         if (model != null && model.alive()) model.teleport(position);
         if (leashAnchor != null && leashAnchor.isValid()) leashAnchor.teleport(position);
@@ -196,10 +225,12 @@ public class Balloon extends Cosmetic {
     @Override
     protected void onUnequip() {
         if (model != null && model.alive()) {
+            // Mismo reventon que ProCosmetics: nube de 10 particulas con
+            // dispersion 0.15 y velocidad 0.05, mas el sonido de huevo grave.
             Location at = position.clone().add(0, 0.5, 0);
-            Particles.dust(balloonType.popColor()).count(1)
-                    .spawn(at, Shapes.sphere(0.35, 14));
-            Sounds.POP.playAt(at, 0.6f, 0.6f);
+            Particles.of(ParticleType.CLOUD).count(10).offset(0.15).speed(0.05).spawn(at);
+            Particles.dust(balloonType.popColor()).count(1).spawn(at, Shapes.sphere(0.35, 10));
+            Sounds.POP.playAt(at, 0.5f, 0.5f);
             model.destroy();
         }
         if (leashAnchor != null && leashAnchor.isValid()) leashAnchor.remove();

@@ -77,6 +77,30 @@ public final class Entities {
         }
     }
 
+    /** Etiqueta de metadata que marca una entidad como propiedad de Aurora. */
+    public static final String TAG = "aurora_entity";
+
+    /**
+     * Marca la entidad como de Aurora. El listener de proteccion usa esto para
+     * cancelarle dano, fuego y targeting de mobs.
+     */
+    public static void tag(Entity entity) {
+        try {
+            entity.setMetadata(TAG, new org.bukkit.metadata.FixedMetadataValue(
+                    com.ricodevvv.aurora.Aurora.plugin(), true));
+        } catch (Throwable ignored) {
+        }
+    }
+
+    /** @return true si la entidad fue creada por Aurora */
+    public static boolean isAurora(Entity entity) {
+        try {
+            return entity.hasMetadata(TAG);
+        } catch (Throwable ignored) {
+            return false;
+        }
+    }
+
     /** Silencia la entidad. Solo 1.9+; en 1.8 no hay flag de silencio. */
     public static void silence(Entity entity) {
         try {
@@ -85,9 +109,25 @@ public final class Entities {
         }
     }
 
+    /**
+     * Marca la entidad como invulnerable.
+     *
+     * <p>{@code setInvulnerable} no existe en 1.8, asi que ahi esto no hace
+     * nada por si solo: la proteccion real la da
+     * {@link com.ricodevvv.aurora.cosmetic.CosmeticListener}, que cancela el
+     * dano de cualquier entidad marcada con {@link #tag(Entity)}.
+     *
+     * @param entity entidad a proteger
+     */
     public static void invulnerable(Entity entity) {
         try {
             entity.getClass().getMethod("setInvulnerable", boolean.class).invoke(entity, true);
+        } catch (Throwable ignored) {
+        }
+        try {
+            // Evita el parpadeo rojo y el knockback aunque el dano se cancele.
+            entity.getClass().getMethod("setMaximumNoDamageTicks", int.class)
+                    .invoke(entity, Integer.MAX_VALUE);
         } catch (Throwable ignored) {
         }
     }
@@ -99,8 +139,22 @@ public final class Entities {
         }
     }
 
+    /**
+     * Vuelve invisible la entidad.
+     *
+     * <p>Hay tres caminos y hacen falta los tres:
+     * <ul>
+     *   <li>{@code Entity#setInvisible} existe recien desde 1.20.5.</li>
+     *   <li>{@code ArmorStand#setVisible} solo aplica a armor stands.</li>
+     *   <li>Para cualquier otro mob entre 1.8 y 1.20.4 el UNICO camino sin NMS
+     *       es una pocion de invisibilidad infinita.</li>
+     * </ul>
+     * Sin el tercer caso el ancla de correa de los globos se ve, que es
+     * justo el bug clasico de esta tecnica.
+     *
+     * @param entity entidad a ocultar
+     */
     public static void invisible(Entity entity) {
-        // ArmorStand#setVisible en 1.8; Entity#setInvisible desde 1.20.5
         try {
             entity.getClass().getMethod("setInvisible", boolean.class).invoke(entity, true);
             return;
@@ -108,6 +162,42 @@ public final class Entities {
         }
         try {
             entity.getClass().getMethod("setVisible", boolean.class).invoke(entity, false);
+            return;
+        } catch (Throwable ignored) {
+        }
+        invisibilityPotion(entity);
+    }
+
+    /**
+     * Pocion de invisibilidad permanente y sin particulas.
+     *
+     * <p>El constructor de {@code PotionEffect} fue creciendo (3, 4 y 5
+     * argumentos segun la version), asi que se prueban de mas nuevo a mas
+     * viejo. Con el de 5 argumentos ademas se apagan las particulas, que es
+     * lo que delataria al ancla en 1.9+.
+     *
+     * @param entity entidad viva a ocultar
+     */
+    private static void invisibilityPotion(Entity entity) {
+        if (!(entity instanceof LivingEntity)) return;
+        try {
+            Class<?> effectType = Reflect.lookup("org.bukkit.potion.PotionEffectType");
+            Object invisibility = effectType.getField("INVISIBILITY").get(null);
+            Class<?> effect = Reflect.lookup("org.bukkit.potion.PotionEffect");
+
+            Object instance = null;
+            try {
+                instance = effect.getConstructor(effectType, int.class, int.class,
+                                boolean.class, boolean.class)
+                        .newInstance(invisibility, Integer.MAX_VALUE, 1, false, false);
+            } catch (Throwable ignored) {
+            }
+            if (instance == null) {
+                instance = effect.getConstructor(effectType, int.class, int.class, boolean.class)
+                        .newInstance(invisibility, Integer.MAX_VALUE, 1, false);
+            }
+            LivingEntity living = (LivingEntity) entity;
+            living.getClass().getMethod("addPotionEffect", effect).invoke(living, instance);
         } catch (Throwable ignored) {
         }
     }

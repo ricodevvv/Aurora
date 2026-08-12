@@ -86,7 +86,18 @@ public final class ParticleEffects {
                         FLAME.range(28).spawn(at.clone().add(0, y, 0),
                                 SHAPE_RING.scale(radius).rotateY(spin));
                     }
-                }).interval(2);
+                })
+                // Al caminar: dos estelas a los costados, girando con el yaw.
+                // Sus constantes: rango 0.1, count 1, offset (0.3, 0.0, 0.6), speed 0.
+                .moving((player, at, tick) -> {
+                    double yaw = Math.toRadians(at.getYaw());
+                    double dx = 0.1 * Math.cos(yaw), dz = 0.1 * Math.sin(yaw);
+                    ParticleBuilder trail = FLAME.count(1).offset(0.3, 0.0, 0.6).speed(0).range(28);
+                    trail.spawn(at.clone().add(dx, 0, dz));
+                    trail.spawn(at.clone().add(-dx, 0, -dz));
+                    FLAME.offset(0, 0, 0).speed(0.01);
+                })
+                .interval(2);
     }
 
     public static ParticleEffectType llamaDemoniaca() {
@@ -269,13 +280,21 @@ public final class ParticleEffects {
 
     public static ParticleEffectType notasMusicales() {
         return new ParticleEffectType("notas", "&aNotas Musicales", icon("JUKEBOX"),
+                // Quieto: la nota orbita a 0.6 de radio, 2.2 de altura.
                 (player, at, tick) -> {
-                    NOTE.range(26).color(Colors.rainbow(random()))
-                            .spawn(at.clone().add(random() - 0.5, 2.2, random() - 0.5));
+                    double angle = Math.toRadians(tick * 12);
+                    NOTE.count(0).range(26).color(Colors.rainbow((tick % 24) / 24.0))
+                            .spawn(at.clone().add(
+                                    Math.cos(angle) * 0.6, 2.2, Math.sin(angle) * 0.6));
                     if (tick % 20 == 0) {
                         Sounds.NOTE_HARP.play(player, 0.3f, Sounds.pitchOf((int) (random() * 12)));
                     }
-                }).interval(5);
+                })
+                // Caminando: la nota sale a la altura del pecho, sin orbitar.
+                .moving((player, at, tick) -> NOTE.count(0).range(26)
+                        .color(Colors.rainbow((tick % 24) / 24.0))
+                        .spawn(at.clone().add(0, 0.6, 0)))
+                .interval(4);
     }
 
     public static ParticleEffectType confeti() {
@@ -339,7 +358,7 @@ public final class ParticleEffects {
                                 .spawn(at.clone().add(
                                         (random() - 0.5) * 0.8, 0.08, (random() - 0.5) * 0.8));
                     }
-                }).trigger(ParticleEffectType.Trigger.MOVING).interval(2);
+                }).interval(2);
     }
 
     // ------------------------------------------------------------- rastros
@@ -348,7 +367,7 @@ public final class ParticleEffects {
         return new ParticleEffectType("rastro_colorido", "&b&lRastro Colorido", icon("LIGHT_BLUE_DYE", "INK_SACK"),
                 (player, at, tick) -> DUST.color(Colors.rainbow(tick * 0.02)).size(1.2f).range(30)
                         .spawn(at.clone().add(0, 0.15, 0)))
-                .trigger(ParticleEffectType.Trigger.MOVING).interval(1);
+                .interval(1);
     }
 
     public static ParticleEffectType tornado() {
@@ -372,7 +391,7 @@ public final class ParticleEffects {
                                 (Math.sin(tick * 0.05) + 1) / 2)).size(1.1f).range(30)
                         .spawn(at.clone().add(0, 0.08, 0),
                                 Shapes.runeCircle(1.5, 6, 0.4, 40).rotateY(tick * 0.04)))
-                .trigger(ParticleEffectType.Trigger.IDLE).interval(3);
+                .interval(3);
     }
 
     public static ParticleEffectType rayoElectrico() {

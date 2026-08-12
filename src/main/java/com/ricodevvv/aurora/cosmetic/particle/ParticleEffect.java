@@ -35,21 +35,10 @@ public class ParticleEffect extends Cosmetic {
         Location current = player.getLocation();
         updateMovement(current);
 
-        switch (effectType.trigger()) {
-            case MOVING:
-                if (!moving) return;
-                break;
-            case IDLE:
-                if (moving) return;
-                break;
-            default:
-                break;
-        }
-
         if (skip(current)) return;
 
         try {
-            effectType.renderer().render(player, current.clone(), tick);
+            effectType.renderer(moving).render(player, current.clone(), tick);
         } catch (Throwable t) {
             org.bukkit.Bukkit.getLogger().warning(
                     "[Aurora] Efecto " + effectType.id() + " reviento: " + t);
