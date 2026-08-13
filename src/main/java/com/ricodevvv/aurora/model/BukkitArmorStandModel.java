@@ -7,7 +7,10 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-/** Backend clasico: un ArmorStand real. Sin dependencias, funciona 1.8 - 1.21. */
+/**
+ * The fallback backend: a real armour stand. No dependencies, works on every
+ * version from 1.8 to 1.21, but the entity genuinely exists in the world.
+ */
 public class BukkitArmorStandModel implements Model {
 
     private final boolean small;
@@ -40,8 +43,8 @@ public class BukkitArmorStandModel implements Model {
 
     @Override
     public void headYaw(float yaw) {
-        // Un ArmorStand real no separa head yaw del body yaw sin NMS.
-        // El teleport ya lleva el yaw, asi que aqui no hay nada que hacer.
+        // A real armour stand has no head yaw separate from its body yaw
+        // without NMS. The teleport already carries the yaw, so this is a no-op.
     }
 
     @Override
@@ -56,7 +59,8 @@ public class BukkitArmorStandModel implements Model {
 
     @Override
     public boolean leashTo(Player holder) {
-        return false; // los armor stands no se pueden atar; el globo usa un ancla aparte
+        // Armour stands cannot be leashed; callers use a separate anchor mob.
+        return false;
     }
 
     @Override

@@ -17,43 +17,47 @@ import org.bukkit.util.Vector;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
- * Globo que flota atado al jugador.
+ * A balloon floating on a lead beside the player.
  *
- * Simulacion: el globo es una masa con inercia amortiguada, empujada por un
- * viento senoidal con algo de ruido, y sujeta por una restriccion dura de
- * distancia al punto de anclaje (el hombro del jugador). Cada tick:
- * inercia -> viento -> mover -> recortar a la longitud de cuerda ->
- * recalcular inercia desde el desplazamiento real. Esa ultima parte es lo que
- * hace que el globo "rebote" al final de la cuerda en vez de quedarse tieso.
+ * <p>The balloon is simulated as a damped mass pushed by a noisy sinusoidal
+ * wind and held by a hard distance constraint to an anchor at the player's
+ * side. Each tick runs: decay inertia, add wind, move, clamp to the lead
+ * length, then recompute inertia from the movement that actually happened.
  *
- * Por que ArmorStand y no ItemDisplay: ItemDisplay es 1.19.4+, y el escalado
- * por Attribute.SCALE es 1.20.5+. El ArmorStand con casco funciona identico
- * desde 1.8, asi que hay UN solo camino de codigo en vez de tres.
+ * <p>That last step is the one that matters. Recomputing inertia from the
+ * post-constraint displacement is what makes the balloon rebound when the lead
+ * goes taut; without it the balloon simply pins itself to the end of the lead
+ * and stops reacting.
+ *
+ * <p>Rendered as an armour stand wearing a helmet rather than an item display.
+ * Displays only exist from 1.19.4 and {@code Attribute.SCALE} from 1.20.5,
+ * whereas a helmeted armour stand behaves identically all the way back to 1.8.
+ * That keeps this to one code path instead of three.
  */
 public class Balloon extends Cosmetic {
 
-    /** Amortiguacion de la inercia por tick. */
+    /** Inertia retained per tick. */
     private static final double INERTIA_DECAY = 0.95;
-    /** Flotabilidad: la inercia vertical nunca baja de esto. */
+    /** Buoyancy floor: vertical inertia never drops below this. */
     private static final double LIFT = 0.1;
-    /** Inercia vertical inicial, para que el globo suba de golpe al equiparlo. */
+    /** Initial vertical inertia, so the balloon rises immediately on equip. */
     private static final double INITIAL_LIFT = 0.2;
     private static final double WIND_STRENGTH = 0.01;
     private static final double TURBULENCE = 0.08;
-    /** Amortiguacion del giro. */
+    /** Spin retained per tick. */
     private static final float ROTATION_DECAY = 0.98f;
-    /** El globo nunca deja de girar del todo. */
+    /** The balloon never stops spinning entirely. */
     private static final float MIN_ROTATION_SPEED = 1.0f;
-    /** Cuanto del movimiento lateral se convierte en giro. */
+    /** How much lateral movement is converted into spin. */
     private static final float ROTATION_MULTIPLIER = 1.0f;
 
     /**
-     * Desplazamiento del ancla respecto al jugador, antes de rotarlo con su yaw.
+     * Anchor offset from the player, before being rotated by their yaw.
      *
-     * <p>La Y es CERO a proposito: el ancla va a la altura de los pies, no
-     * sobre la cabeza. El globo sube solo por flotabilidad hasta que la cuerda
-     * lo detiene. Anclarlo arriba lo deja casi inmovil, porque nace ya al
-     * limite de la cuerda y no le queda recorrido.
+     * <p>The Y component is zero on purpose: the anchor sits at foot level, not
+     * above the head. The balloon rises on its own buoyancy until the lead
+     * stops it. Anchoring it high leaves it almost motionless, because it
+     * starts already at the lead's limit with no travel left.
      */
     private static final Vector ANCHOR_OFFSET = new Vector(-0.8, 0.0, 0.2);
 
@@ -94,17 +98,23 @@ public class Balloon extends Cosmetic {
     }
 
     /**
-     * Ancla de la correa: un conejo bebe invisible.
+     * Creates the lead anchor: an invisible baby rabbit.
      *
-     * En 1.8 la correa SOLO funciona sobre Creature, asi que ni el ArmorStand
-     * ni un Display sirven. El conejo va sin IA y se teletransporta cada tick
-     * a la posicion del globo, asi que visualmente la cuerda sale del globo.
+     * <p>On 1.8 leads only attach to {@code Creature}, so neither an armour
+     * stand nor a display entity can be leashed. The rabbit carries no AI and
+     * is teleported to the balloon's position every tick, so the lead appears
+     * to come from the balloon itself.
+     *
+     * <p>It is tagged, hidden and protected before anything else, because a
+     * visible or killable anchor is the classic failure mode of this technique.
+     *
+     * @param at initial position
      */
     private void createLeashAnchor(Location at) {
         try {
             leashAnchor = at.getWorld().spawnEntity(at, Entities.type("RABBIT"));
-            // El orden importa: tag() primero, porque el listener de proteccion
-            // necesita la marca desde el primer tick de vida de la entidad.
+            // Order matters: tag first, so the protection listener recognises
+            // the entity from its very first tick.
             Entities.tag(leashAnchor);
             Entities.baby(leashAnchor);
             Entities.invisible(leashAnchor);
@@ -128,7 +138,7 @@ public class Balloon extends Cosmetic {
         Location anchor = anchor();
         if (anchor.getWorld() == null) return;
 
-        // Cambio de mundo: reposicionar en seco, sin interpolar.
+        // World change: reposition instantly rather than interpolating across worlds.
         if (position.getWorld() != anchor.getWorld()) {
             teleportTo(anchor);
             return;
@@ -136,11 +146,11 @@ public class Balloon extends Cosmetic {
 
         Vector previous = position.toVector();
 
-        // Inercia amortiguada + flotabilidad
+        // Damped inertia plus buoyancy.
         inertia.multiply(INERTIA_DECAY);
         if (inertia.getY() < LIFT) inertia.setY(Math.min(LIFT, inertia.getY() + LIFT));
 
-        // Viento senoidal + turbulencia
+        // Sinusoidal wind plus random turbulence.
         windPhase += TURBULENCE;
         double magnitude = Math.sin(windPhase) * WIND_STRENGTH;
         inertia.add(new Vector(
@@ -150,7 +160,7 @@ public class Balloon extends Cosmetic {
 
         position.add(inertia.getX(), inertia.getY(), inertia.getZ());
 
-        // Restriccion dura de cuerda
+        // Hard lead-length constraint.
         double distance = position.distance(anchor);
         if (distance > balloonType.leashLength()) {
             double ratio = balloonType.leashLength() / distance;
@@ -159,14 +169,14 @@ public class Balloon extends Cosmetic {
             position.setZ(anchor.getZ() + (position.getZ() - anchor.getZ()) * ratio);
         }
 
-        // La inercia real es el desplazamiento efectivo tras la restriccion.
-        // Sin esto el globo no rebota al tensarse la cuerda.
+        // Real inertia is the displacement that survived the constraint.
+        // Without this the balloon never rebounds when the lead goes taut.
         inertia.setX(position.getX() - previous.getX());
         inertia.setY(position.getY() - previous.getY());
         inertia.setZ(position.getZ() - previous.getZ());
 
-        // El giro se alimenta del movimiento lateral, con minimo para que
-        // nunca se quede completamente quieto.
+        // Spin is fed by lateral movement, with a floor so the balloon never
+        // comes to a complete stop.
         spin *= ROTATION_DECAY;
         if (Math.abs(spin) < MIN_ROTATION_SPEED) {
             spin = spin >= 0 ? MIN_ROTATION_SPEED : -MIN_ROTATION_SPEED;
@@ -184,13 +194,18 @@ public class Balloon extends Cosmetic {
         if (balloonType.leashMode() == BalloonType.LeashMode.PARTICLE) {
             drawParticleLeash(anchor);
         }
-        // El tracking de espectadores solo aplica al backend de paquetes; el
-        // teleport ya lo refresca, asi que aqui no hace falta nada extra.
+        // Viewer tracking only applies to the packet backend, and teleport
+        // already refreshes it, so nothing extra is needed here.
         if (balloonType.ambientParticle() != null && tick % balloonType.ambientInterval() == 0) {
             balloonType.ambientParticle().spawn(position.clone().add(0, 0.6, 0));
         }
     }
 
+    /**
+     * Draws the lead with particles instead of a real lead.
+     *
+     * @param anchor where the lead starts
+     */
     private void drawParticleLeash(Location anchor) {
         Vector delta = position.toVector().subtract(anchor.toVector());
         Particles.of(XParticle.SMOKE).count(1).speed(0)
@@ -198,9 +213,9 @@ public class Balloon extends Cosmetic {
     }
 
     /**
-     * Punto de anclaje: el costado del jugador, girado con su yaw.
+     * Computes the anchor position: the player's side, rotated by their yaw.
      *
-     * @return posicion del ancla este tick
+     * @return where the lead is held this tick
      */
     private Location anchor() {
         Location base = player.getLocation();
@@ -210,6 +225,12 @@ public class Balloon extends Cosmetic {
                 offset.getY() + balloonType.height(), offset.getZ());
     }
 
+    /**
+     * Snaps the balloon to a position and resets its motion, used on world
+     * changes where interpolating would be meaningless.
+     *
+     * @param location position to snap to
+     */
     private void teleportTo(Location location) {
         position.setWorld(location.getWorld());
         position.setX(location.getX());
@@ -225,8 +246,7 @@ public class Balloon extends Cosmetic {
     @Override
     protected void onUnequip() {
         if (model != null && model.alive()) {
-            // Mismo reventon que ProCosmetics: nube de 10 particulas con
-            // dispersion 0.15 y velocidad 0.05, mas el sonido de huevo grave.
+            // Pop: a ten-particle cloud with 0.15 spread at 0.05 speed.
             Location at = position.clone().add(0, 0.5, 0);
             Particles.of(XParticle.CLOUD).count(10).offset(0.15).speed(0.05).spawn(at);
             Particles.dust(balloonType.popColor()).count(1).spawn(at, Shapes.sphere(0.35, 10));
@@ -238,6 +258,9 @@ public class Balloon extends Cosmetic {
         leashAnchor = null;
     }
 
+    /**
+     * @return the balloon's visible model, or {@code null} if not equipped
+     */
     public Model model() {
         return model;
     }

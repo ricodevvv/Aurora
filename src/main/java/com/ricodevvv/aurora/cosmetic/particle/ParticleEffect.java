@@ -5,11 +5,12 @@ import org.bukkit.Location;
 import org.bukkit.entity.Player;
 
 /**
- * Efecto de particulas equipado.
+ * A particle effect worn by a player.
  *
- * Corta el trabajo antes de dibujar cuando no hace falta: si nadie esta cerca,
- * si el jugador esta en vanish/espectador, o si el trigger no se cumple. Con 50
- * jugadores equipados en un lobby eso es la diferencia entre notarlo y no.
+ * <p>Work is skipped before any particle is built: if nobody is in range, or
+ * the wearer is in spectator mode, the frame costs nothing. With fifty players
+ * wearing effects in a lobby that check is the difference between noticeable
+ * and not.
  */
 public class ParticleEffect extends Cosmetic {
 
@@ -55,7 +56,12 @@ public class ParticleEffect extends Cosmetic {
         previous = current;
     }
 
-    /** No dibujar si no hay publico o si el jugador no deberia verse. */
+    /**
+     * Decides whether this frame can be skipped entirely.
+     *
+     * @param at the wearer's position
+     * @return {@code true} if nothing should be drawn
+     */
     private boolean skip(Location at) {
         if (at.getWorld() == null) return true;
         if (player.getGameMode() == org.bukkit.GameMode.SPECTATOR) return true;

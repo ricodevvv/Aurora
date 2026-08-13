@@ -6,7 +6,12 @@ import com.ricodevvv.aurora.cosmetic.CosmeticType;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-/** Definicion de un efecto de particulas equipable. */
+/**
+ * The definition of a wearable particle effect.
+ *
+ * <p>An effect can render differently depending on whether its wearer is
+ * moving; see {@link #moving(EffectRenderer)}.
+ */
 public class ParticleEffectType implements CosmeticType {
 
     private final String id;
@@ -20,11 +25,11 @@ public class ParticleEffectType implements CosmeticType {
     private String permission;
 
     /**
-     * @param id          id unico dentro de la categoria
-     * @param displayName nombre visible, acepta codigos con '&'
-     * @param icon        icono para el menu
-     * @param idleRenderer  como se dibuja con el jugador quieto (y por defecto
-     *                      tambien en movimiento, hasta que definas {@link #moving})
+     * @param id          identifier, unique within the category
+     * @param displayName display name, supporting {@code &} colour codes
+     * @param icon        icon shown in a selection menu
+     * @param idleRenderer how it draws while the wearer is still, and by
+     *                     default while moving too until {@link #moving} is set
      */
     public ParticleEffectType(String id, String displayName, ItemStack icon, EffectRenderer idleRenderer) {
         this.id = id;
@@ -34,15 +39,15 @@ public class ParticleEffectType implements CosmeticType {
     }
 
     /**
-     * Define una variante distinta para cuando el jugador camina.
+     * Defines a separate variant used while the wearer is walking.
      *
-     * <p>Esto es lo que hace que un efecto se sienta "vivo" y no un adorno
-     * pegado: un anillo de llamas quieto se convierte en dos estelas a los
-     * costados al correr, en vez de arrastrar el anillo entero. Si no la
-     * defines, se usa la misma en ambos estados.
+     * <p>This is what stops an effect reading as a sticker: a ring of flames
+     * standing still becomes two trails at the wearer's sides when they run,
+     * rather than the whole ring being dragged along. Without it the same
+     * variant is used in both states.
      *
-     * @param movingRenderer variante en movimiento
-     * @return este mismo tipo, para encadenar
+     * @param movingRenderer variant drawn while moving
+     * @return this type
      */
     public ParticleEffectType moving(EffectRenderer movingRenderer) {
         this.movingRenderer = movingRenderer;
@@ -50,18 +55,27 @@ public class ParticleEffectType implements CosmeticType {
     }
 
     /**
-     * Cada cuantos ticks se dibuja. Subelo para efectos densos.
+     * Sets how often the effect is drawn.
      *
-     * Es la palanca de rendimiento mas importante: un efecto de 60 particulas
-     * cada tick con 50 jugadores equipados son 60.000 particulas por segundo.
-     * A interval(3) baja a 20.000 y casi no se nota a simple vista.
+     * <p>This is the most important performance lever here. A sixty-particle
+     * effect drawn every tick, worn by fifty players, is sixty thousand
+     * particles a second. At an interval of three that drops to twenty
+     * thousand and is close to indistinguishable by eye.
+     *
+     * @param interval ticks between frames; clamped to at least {@code 1}
+     * @return this type
      */
     public ParticleEffectType interval(int interval) {
         this.interval = Math.max(1, interval);
         return this;
     }
 
-    /** Radio en bloques desde el que se ve. */
+    /**
+     * Sets the radius within which the effect is visible.
+     *
+     * @param range radius in blocks
+     * @return this type
+     */
     public ParticleEffectType range(double range) {
         this.range = range;
         return this;
@@ -103,10 +117,10 @@ public class ParticleEffectType implements CosmeticType {
     }
 
     /**
-     * Elige la variante que toca dibujar este tick.
+     * Picks the variant to draw this tick.
      *
-     * @param moving true si el jugador se esta desplazando
-     * @return la variante en movimiento si existe, si no la de reposo
+     * @param moving whether the wearer is currently moving
+     * @return the moving variant if one was defined, otherwise the idle one
      */
     public EffectRenderer renderer(boolean moving) {
         return moving && movingRenderer != null ? movingRenderer : idleRenderer;

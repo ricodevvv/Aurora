@@ -8,19 +8,27 @@ import org.bukkit.Color;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-/** Definicion de un globo: como se ve, como cuelga y que particulas suelta. */
+/**
+ * The definition of a balloon: what it looks like, how it is tethered and what
+ * it trails behind.
+ */
 public class BalloonType implements CosmeticType {
 
-    /** Como se dibuja la cuerda entre el jugador y el globo. */
+    /**
+     * How the tether between player and balloon is drawn.
+     */
     public enum LeashMode {
         /**
-         * Correa real de Minecraft. Necesita un mob invisible de ancla
-         * (en 1.8 solo los Creature se pueden atar).
+         * A real Minecraft lead. Requires an invisible anchor mob, because on
+         * 1.8 only {@code Creature} entities can be leashed.
          */
         ENTITY,
-        /** Cuerda dibujada con particulas. Funciona igual en todas las versiones. */
+        /**
+         * The tether drawn with particles. Identical on every version and adds
+         * no extra entities to the world.
+         */
         PARTICLE,
-        /** Sin cuerda: el globo solo flota al lado. */
+        /** No tether at all; the balloon simply floats alongside. */
         NONE
     }
 
@@ -43,9 +51,14 @@ public class BalloonType implements CosmeticType {
         this.model = model;
     }
 
-    // ------------------------------------------------------------- fluent
+    // -------------------------------------------------------------- fluent
 
-    /** Largo maximo de la cuerda en bloques. */
+    /**
+     * Sets the maximum tether length.
+     *
+     * @param leashLength length in blocks
+     * @return this type
+     */
     public BalloonType leashLength(double leashLength) {
         this.leashLength = leashLength;
         return this;
@@ -56,26 +69,48 @@ public class BalloonType implements CosmeticType {
         return this;
     }
 
-    /** Altura de reposo sobre el jugador. */
+    /**
+     * Sets the resting height above the anchor point.
+     *
+     * @param height height in blocks
+     * @return this type
+     */
     public BalloonType height(double height) {
         this.height = height;
         return this;
     }
 
-    /** Armor stand pequeno: el modelo se ve a la mitad. Funciona desde 1.8. */
+    /**
+     * Uses a small armour stand, halving the apparent model size. Works from
+     * 1.8 onwards, unlike entity scaling.
+     *
+     * @param small whether to render small
+     * @return this type
+     */
     public BalloonType small(boolean small) {
         this.small = small;
         return this;
     }
 
-    /** Particula que suelta mientras flota. */
+    /**
+     * Sets a particle trailed while the balloon floats.
+     *
+     * @param particle   particle to spawn
+     * @param everyTicks ticks between spawns
+     * @return this type
+     */
     public BalloonType ambient(ParticleBuilder particle, int everyTicks) {
         this.ambientParticle = particle;
         this.ambientInterval = Math.max(1, everyTicks);
         return this;
     }
 
-    /** Color del reventon al desequipar. */
+    /**
+     * Sets the colour of the pop burst shown when the balloon is removed.
+     *
+     * @param popColor burst colour
+     * @return this type
+     */
     public BalloonType popColor(Color popColor) {
         this.popColor = popColor;
         return this;
@@ -86,7 +121,7 @@ public class BalloonType implements CosmeticType {
         return this;
     }
 
-    // ------------------------------------------------------------ getters
+    // ------------------------------------------------------------- getters
 
     @Override
     public String id() {

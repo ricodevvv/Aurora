@@ -9,14 +9,15 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Texto y sprites dibujados con particulas.
+ * Text and sprites drawn out of particles.
  *
- * Fuente de 3x5 pixeles: chiquita a proposito, porque cada pixel es una
- * particula y una fuente 5x7 te dispara el conteo por frame sin verse mucho
- * mejor a distancia de juego.
+ * <p>The built-in font is 3x5 pixels, deliberately small: every pixel is a
+ * particle, and a 5x7 font roughly doubles the per-frame count without looking
+ * meaningfully better at the distance players actually read these from.
  *
- * Devuelve un Shape normal, asi que se combina con todo lo demas:
- * rotarlo, escalarlo o meterlo en una ShapeAnimation sale gratis.
+ * <p>Everything here returns an ordinary {@link Shape}, so rotating, scaling or
+ * feeding it to a {@link com.ricodevvv.aurora.animation.ShapeAnimation} works
+ * with no extra plumbing.
  */
 public final class Glyphs {
 
@@ -81,9 +82,14 @@ public final class Glyphs {
     }
 
     /**
-     * Texto en el plano XY, centrado en el origen.
+     * Renders text in the XY plane, centred on the origin.
      *
-     * @param pixelSize tamano de cada pixel en bloques (0.1 - 0.2 se ve bien)
+     * <p>Unsupported characters are skipped rather than substituted.
+     *
+     * @param text      text to render; lowercase is folded to uppercase
+     * @param pixelSize size of one pixel in blocks; {@code 0.1} to {@code 0.2}
+     *                  reads well in game
+     * @return the text as a shape
      */
     public static Shape text(String text, double pixelSize) {
         String upper = text.toUpperCase();
@@ -109,23 +115,34 @@ public final class Glyphs {
         return Shape.of(list);
     }
 
-    /** Texto ya orientado para que se lea desde donde mira esa location. */
+    /**
+     * Text pre-rotated so it reads correctly from a given viewpoint.
+     *
+     * @param text      text to render
+     * @param pixelSize size of one pixel, in blocks
+     * @param viewer    location the text should face
+     * @return the oriented text shape
+     */
     public static Shape textFacing(String text, double pixelSize, Location viewer) {
         return text(text, pixelSize).rotateY(Math.toRadians(-viewer.getYaw()));
     }
 
     /**
-     * Sprite desde arte ASCII. Cualquier caracter distinto de espacio o '.'
-     * cuenta como pixel encendido. La primera fila es la de arriba.
+     * Renders a sprite from ASCII art. Any character other than a space or a
+     * dot counts as a lit pixel, and the first row is the top one.
      *
-     * <pre>
-     * Shapes.sprite(new String[]{
-     *     ".##.##.",
-     *     "#######",
-     *     ".#####.",
-     *     "..###..",
-     *     "...#..."}, 0.15);   // corazon
-     * </pre>
+     * <pre>{@code
+     * Glyphs.sprite(new String[]{
+     *         ".##.##.",
+     *         "#######",
+     *         ".#####.",
+     *         "..###..",
+     *         "...#..."}, 0.15);
+     * }</pre>
+     *
+     * @param rows      rows of ASCII art, top row first
+     * @param pixelSize size of one pixel in blocks
+     * @return the sprite as a shape
      */
     public static Shape sprite(String[] rows, double pixelSize) {
         List<Vector> list = new ArrayList<>();
@@ -144,7 +161,7 @@ public final class Glyphs {
         return Shape.of(list);
     }
 
-    /** Sprites de ejemplo, listos para usar. */
+    /** Ready-made sprite: a heart. */
     public static final String[] HEART = {
             ".##.##.",
             "#######",
@@ -153,6 +170,7 @@ public final class Glyphs {
             "..###..",
             "...#..."};
 
+    /** Ready-made sprite: a skull. */
     public static final String[] SKULL = {
             ".#####.",
             "#######",
@@ -162,6 +180,7 @@ public final class Glyphs {
             ".#.#.#.",
             "..###.."};
 
+    /** Ready-made sprite: a sword. */
     public static final String[] SWORD = {
             "....##",
             "...##.",

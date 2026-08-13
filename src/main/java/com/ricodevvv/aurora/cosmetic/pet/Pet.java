@@ -11,17 +11,17 @@ import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
 /**
- * Mascota que sigue al jugador.
+ * A pet that follows its owner.
  *
- * El movimiento lo hacemos nosotros con interpolacion, no con el pathfinder de
- * vanilla. Razones:
- *  - El pathfinder cambio mucho entre 1.8 y 1.21; hacerlo a mano da el MISMO
- *    comportamiento en todas las versiones.
- *  - No pelea con el servidor por el control de la entidad ni gasta ticks de IA.
- *  - Permite el flotado y el "teleport si se quedo muy atras" sin trucos.
+ * <p>Movement is interpolated by Aurora rather than delegated to vanilla
+ * pathfinding, for three reasons: the pathfinder changed substantially between
+ * 1.8 and 1.21 so doing it by hand gives identical behaviour everywhere; it
+ * avoids fighting the server for control of the entity and spends no AI ticks;
+ * and it makes hovering and "teleport if left behind" trivial rather than
+ * hacks.
  *
- * A cambio la mascota atraviesa paredes en trayectos cortos. Para un cosmetico
- * de lobby eso se ve mejor que una mascota atorada en una esquina.
+ * <p>The trade-off is that pets clip through walls on short hops. For a lobby
+ * cosmetic that reads better than a pet stuck on a corner.
  */
 public class Pet extends Cosmetic {
 
@@ -47,9 +47,8 @@ public class Pet extends Cosmetic {
 
     private void spawn(Location at) {
         if (petType.renderMode() == PetType.RenderMode.HEAD) {
-            // Modo HEAD: no hay entidad real, asi que llevamos la posicion
-            // nosotros en `location`. Con PacketEvents esto es cero entidades
-            // en el mundo.
+            // HEAD mode has no real entity, so position is tracked in
+            // `location`. With PacketEvents this is zero world entities.
             copy(location, at);
             model = Models.armorStand(true);
             model.spawn(at);
@@ -71,7 +70,7 @@ public class Pet extends Cosmetic {
         Entities.persist(entity);
         Entities.nameTag(entity, nameTag());
 
-        // Si otro plugin bloqueo el spawn, no dejamos el cosmetico colgado.
+        // If another plugin cancelled the spawn, do not leave the cosmetic hanging.
         if (!entity.isValid()) stop();
     }
 
@@ -97,7 +96,7 @@ public class Pet extends Cosmetic {
         Location petLocation = entity.getLocation();
         Location playerLocation = player.getLocation();
 
-        // Mundo distinto o muy lejos: reaparecer en seco.
+        // Different world or too far behind: respawn rather than crawl back.
         if (petLocation.getWorld() != playerLocation.getWorld()
                 || petLocation.distanceSquared(playerLocation) > TELEPORT_DISTANCE_SQ) {
             entity.remove();
@@ -111,8 +110,8 @@ public class Pet extends Cosmetic {
                 : Math.sin(tick * 0.15) * petType.hover() + petType.hover();
 
         if (distance > petType.followDistance()) {
-            // Nos acercamos una fraccion de la distancia sobrante: acelera
-            // cuando el jugador corre y frena solo al llegar.
+            // Close a fraction of the remaining gap, so the pet speeds up when
+            // the owner runs and eases to a stop on arrival.
             double step = Math.min(petType.speed(), distance - petType.followDistance());
             Vector move = delta.clone().normalize().multiply(step);
             target.setWorld(playerLocation.getWorld());
@@ -123,7 +122,7 @@ public class Pet extends Cosmetic {
             target.setPitch(0);
             entity.teleport(target);
         } else if (petType.hover() > 0 || tick % 4 == 0) {
-            // Quieta: solo flota y voltea a ver al jugador.
+            // At rest: hover in place and turn to face the owner.
             target.setWorld(playerLocation.getWorld());
             target.setX(petLocation.getX());
             target.setY(petLocation.getY() + hover * 0.05);
@@ -138,7 +137,12 @@ public class Pet extends Cosmetic {
         }
     }
 
-    /** Mismo seguimiento que el modo MOB, pero sobre una posicion propia. */
+    /**
+     * Runs the same follow logic as MOB mode, but against a position Aurora
+     * tracks itself rather than one read back from an entity.
+     *
+     * @param tick ticks since the pet was equipped
+     */
     private void tickHead(long tick) {
         if (model == null || !model.alive()) {
             stop();
