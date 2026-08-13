@@ -13,28 +13,30 @@ import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 
 /**
- * Listener obligatorio del sistema de cosmeticos. Registralo asi:
+ * Mandatory listener for the cosmetic system. Register it like this:
  *
  * <pre>{@code
  * Bukkit.getPluginManager().registerEvents(new CosmeticListener(), this);
  * }</pre>
  *
- * <p>Hace dos trabajos:
+ * <p>It does two jobs:
  * <ol>
- *   <li><b>Limpieza:</b> quita los cosmeticos al salir el jugador. Sin esto,
- *       cada desconexion deja su globo y su mascota flotando para siempre.</li>
- *   <li><b>Proteccion:</b> blinda las entidades de Aurora contra dano, fuego,
- *       targeting de mobs e interaccion. Esto NO es opcional en 1.8, donde
- *       {@code setInvulnerable} no existe y el ancla de correa del globo se
- *       muere sola por caida, ahogo o un mob que la ataque.</li>
+ *   <li><b>Cleanup.</b> Releases cosmetics when a player disconnects. Without
+ *       it every quit leaves that player's balloon and pet in the world with
+ *       nothing tracking them.</li>
+ *   <li><b>Protection.</b> Shields Aurora's entities from damage, fire, mob
+ *       targeting and interaction. This is not optional on 1.8, where
+ *       {@code setInvulnerable} does not exist and a balloon's leash anchor
+ *       will otherwise die on its own to fall damage, drowning or a passing
+ *       mob.</li>
  * </ol>
  */
 public class CosmeticListener implements Listener {
 
     /**
-     * Quita todos los cosmeticos del jugador que se desconecta.
+     * Releases every cosmetic worn by the disconnecting player.
      *
-     * @param event evento de salida
+     * @param event the quit event
      */
     @EventHandler(priority = EventPriority.MONITOR)
     public void onQuit(PlayerQuitEvent event) {
@@ -42,12 +44,12 @@ public class CosmeticListener implements Listener {
     }
 
     /**
-     * Cancela cualquier dano a entidades de Aurora.
+     * Cancels all damage to Aurora's entities.
      *
-     * <p>Va en {@code LOWEST} e ignora eventos ya cancelados para que otros
-     * plugins puedan verlo, pero nadie pueda descancelarlo despues.
+     * <p>Runs at {@code LOWEST} so other plugins still observe the event, while
+     * anything that would have killed the entity is stopped first.
      *
-     * @param event evento de dano
+     * @param event the damage event
      */
     @EventHandler(priority = EventPriority.LOWEST)
     public void onDamage(EntityDamageEvent event) {
@@ -55,9 +57,10 @@ public class CosmeticListener implements Listener {
     }
 
     /**
-     * Evita que las entidades de Aurora se prendan en fuego (lava, sol, fuego).
+     * Stops Aurora's entities from catching fire, whether from lava, sunlight
+     * or a burning block.
      *
-     * @param event evento de combustion
+     * @param event the combustion event
      */
     @EventHandler(priority = EventPriority.LOWEST)
     public void onCombust(EntityCombustEvent event) {
@@ -65,12 +68,12 @@ public class CosmeticListener implements Listener {
     }
 
     /**
-     * Evita que los mobs elijan como objetivo una entidad de Aurora.
+     * Stops mobs from targeting Aurora's entities.
      *
-     * <p>Sin esto, en un lobby con mobs el ancla del globo se convierte en
-     * iman de zombies.
+     * <p>Without this, in a world with hostile mobs a balloon's leash anchor
+     * becomes a zombie magnet.
      *
-     * @param event evento de targeting
+     * @param event the targeting event
      */
     @EventHandler(priority = EventPriority.LOWEST)
     public void onTarget(EntityTargetEvent event) {
@@ -78,10 +81,10 @@ public class CosmeticListener implements Listener {
     }
 
     /**
-     * Evita que un jugador interactue con una entidad de Aurora: quitarle la
-     * correa, ponerle una silla, esquilarla o cambiarle el equipo.
+     * Stops players interacting with Aurora's entities: unleashing them,
+     * saddling them, shearing them or changing their equipment.
      *
-     * @param event evento de interaccion
+     * @param event the interaction event
      */
     @EventHandler(priority = EventPriority.LOWEST)
     public void onInteract(PlayerInteractEntityEvent event) {
@@ -89,18 +92,19 @@ public class CosmeticListener implements Listener {
     }
 
     /**
-     * Limpieza manual, para cuando tu flujo no pasa por {@code PlayerQuitEvent}
-     * (cambio de servidor, cambio de mundo, fin de partida).
+     * Manual cleanup, for flows that never fire {@code PlayerQuitEvent}: server
+     * switches, world changes or the end of a match.
      *
-     * @param player jugador a limpiar
+     * @param player player to clear
      */
     public static void cleanup(Player player) {
         CosmeticManager.unequipAll(player);
     }
 
     /**
-     * @param entity entidad a consultar
-     * @return true si la entidad pertenece a Aurora y no debe recibir dano
+     * @param entity entity to check
+     * @return {@code true} if the entity belongs to Aurora and must not take
+     * damage
      */
     public static boolean isProtected(Entity entity) {
         return Entities.isAurora(entity);

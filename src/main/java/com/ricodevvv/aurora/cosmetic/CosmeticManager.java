@@ -11,11 +11,14 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Estado de cosmeticos por jugador: uno equipado por categoria.
+ * Tracks which cosmetics each player has equipped, one per category.
  *
- * No persiste nada a proposito. Engancha tu MongoDB/Redis en los hooks de
- * equip/unequip, o llama a equipped()/equip() desde tu propio loader al
- * entrar el jugador.
+ * <p>Nothing is persisted. Aurora deliberately does not choose a storage
+ * backend: use {@link #snapshot(Player)} to obtain a plain map to write to your
+ * own database, and {@link #restore(Player, Map)} to apply it on join.
+ *
+ * <p>Requires {@link CosmeticListener} to be registered, otherwise cosmetics
+ * are never released when players disconnect.
  */
 public final class CosmeticManager {
 
@@ -25,9 +28,11 @@ public final class CosmeticManager {
     }
 
     /**
-     * Equipa un cosmetico. Si ya traia uno de la misma categoria, lo quita antes.
+     * Equips a cosmetic, replacing whatever the player had in that category.
      *
-     * @return la instancia viva, o null si el jugador no tiene permiso.
+     * @param player player to equip
+     * @param type   cosmetic to equip
+     * @return the live instance, or {@code null} if the player lacks permission
      */
     public static Cosmetic equip(Player player, CosmeticType type) {
         if (!type.canUse(player)) return null;
@@ -41,7 +46,13 @@ public final class CosmeticManager {
         return cosmetic;
     }
 
-    /** Equipa si no lo trae, quita si ya lo traia. Devuelve true si quedo equipado. */
+    /**
+     * Equips a cosmetic, or unequips it if that exact one is already worn.
+     *
+     * @param player player to toggle
+     * @param type   cosmetic to toggle
+     * @return {@code true} if the cosmetic ended up equipped
+     */
     public static boolean toggle(Player player, CosmeticType type) {
         Cosmetic current = equipped(player, type.category());
         if (current != null && current.type().id().equalsIgnoreCase(type.id())) {
@@ -51,40 +62,76 @@ public final class CosmeticManager {
         return equip(player, type) != null;
     }
 
+    /**
+     * Removes whatever the player has equipped in one category.
+     *
+     * @param player   player to update
+     * @param category category to clear
+     */
     public static void unequip(Player player, CosmeticCategory category) {
-        Map<CosmeticCategory, Cosmetic> map = EQUIPPED.get(player.getUniqueId());
-        if (map == null) return;
-        Cosmetic cosmetic = map.remove(category);
+        Map<CosmeticCategory, Cosmetic> worn = EQUIPPED.get(player.getUniqueId());
+        if (worn == null) return;
+
+        Cosmetic cosmetic = worn.remove(category);
         if (cosmetic != null) cosmetic.stop();
     }
 
-    /** Quita todo. Llamalo en PlayerQuitEvent, siempre. */
+    /**
+     * Removes every cosmetic a player is wearing. Always call this on quit.
+     *
+     * @param player player to clear
+     */
     public static void unequipAll(Player player) {
-        Map<CosmeticCategory, Cosmetic> map = EQUIPPED.remove(player.getUniqueId());
-        if (map == null) return;
-        for (Cosmetic cosmetic : new ArrayList<>(map.values())) cosmetic.stop();
-    }
+        Map<CosmeticCategory, Cosmetic> worn = EQUIPPED.remove(player.getUniqueId());
+        if (worn == null) return;
 
-    public static Cosmetic equipped(Player player, CosmeticCategory category) {
-        Map<CosmeticCategory, Cosmetic> map = EQUIPPED.get(player.getUniqueId());
-        return map == null ? null : map.get(category);
-    }
-
-    public static Collection<Cosmetic> equipped(Player player) {
-        Map<CosmeticCategory, Cosmetic> map = EQUIPPED.get(player.getUniqueId());
-        return map == null ? new ArrayList<>() : new ArrayList<>(map.values());
-    }
-
-    /** Ids equipados por categoria, listo para guardar en tu base de datos. */
-    public static Map<CosmeticCategory, String> snapshot(Player player) {
-        Map<CosmeticCategory, String> result = new EnumMap<>(CosmeticCategory.class);
-        for (Cosmetic cosmetic : equipped(player)) {
-            result.put(cosmetic.category(), cosmetic.type().id());
+        for (Cosmetic cosmetic : new ArrayList<>(worn.values())) {
+            cosmetic.stop();
         }
-        return result;
     }
 
-    /** Restaura desde un snapshot guardado. Ignora ids que ya no existan. */
+    /**
+     * @param player   player to query
+     * @param category category to query
+     * @return the equipped cosmetic, or {@code null} if none
+     */
+    public static Cosmetic equipped(Player player, CosmeticCategory category) {
+        Map<CosmeticCategory, Cosmetic> worn = EQUIPPED.get(player.getUniqueId());
+        return worn == null ? null : worn.get(category);
+    }
+
+    /**
+     * @param player player to query
+     * @return every cosmetic the player is wearing; never {@code null}
+     */
+    public static Collection<Cosmetic> equipped(Player player) {
+        Map<CosmeticCategory, Cosmetic> worn = EQUIPPED.get(player.getUniqueId());
+        return worn == null ? new ArrayList<>() : new ArrayList<>(worn.values());
+    }
+
+    /**
+     * Captures what the player is wearing as plain identifiers, ready to be
+     * written to storage.
+     *
+     * @param player player to capture
+     * @return a category-to-identifier map
+     */
+    public static Map<CosmeticCategory, String> snapshot(Player player) {
+        Map<CosmeticCategory, String> snapshot = new EnumMap<>(CosmeticCategory.class);
+        for (Cosmetic cosmetic : equipped(player)) {
+            snapshot.put(cosmetic.category(), cosmetic.type().id());
+        }
+        return snapshot;
+    }
+
+    /**
+     * Re-equips a previously captured snapshot. Identifiers that are no longer
+     * registered are skipped, so removing a cosmetic from your catalogue does
+     * not break saved data.
+     *
+     * @param player   player to restore
+     * @param snapshot map produced by {@link #snapshot(Player)}
+     */
     public static void restore(Player player, Map<CosmeticCategory, String> snapshot) {
         for (Map.Entry<CosmeticCategory, String> entry : snapshot.entrySet()) {
             CosmeticType type = CosmeticRegistry.get(entry.getKey(), entry.getValue());
@@ -92,11 +139,18 @@ public final class CosmeticManager {
         }
     }
 
-    /** Limpieza global. Llamalo en onDisable o se te quedan entidades pegadas. */
+    /**
+     * Releases every cosmetic on every player. Called during shutdown.
+     */
     public static void shutdown() {
         List<Cosmetic> all = new ArrayList<>();
-        for (Map<CosmeticCategory, Cosmetic> map : EQUIPPED.values()) all.addAll(map.values());
+        for (Map<CosmeticCategory, Cosmetic> worn : EQUIPPED.values()) {
+            all.addAll(worn.values());
+        }
         EQUIPPED.clear();
-        for (Cosmetic cosmetic : all) cosmetic.stop();
+
+        for (Cosmetic cosmetic : all) {
+            cosmetic.stop();
+        }
     }
 }

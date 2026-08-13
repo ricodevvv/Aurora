@@ -5,59 +5,74 @@ import org.bukkit.Bukkit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Deteccion de PacketEvents. Aurora NO lo requiere: si no esta, todo cae al
- * backend de entidades reales de Bukkit y nadie se entera.
+ * Detects whether PacketEvents is usable and hands out synthetic entity ids.
  *
- * Importante: esta clase solo hace Class.forName. Las clases que de verdad
- * importan PacketEvents viven aparte (PacketEntity y compania) y nunca se
- * cargan si available() devuelve false, asi que no revientan con NoClassDefFound.
+ * <p>PacketEvents is an optional dependency. This class only performs class
+ * lookups by name, so it is always safe to load; the classes that genuinely
+ * import PacketEvents live elsewhere and are never touched unless
+ * {@link #available()} returned {@code true}, which is what keeps a server
+ * without it from hitting {@code NoClassDefFoundError}.
  */
 public final class PacketSupport {
 
-    private static Boolean available;
-
     /**
-     * Contador de ids de entidad falsos.
-     *
-     * Arranca alto para no chocar con ids reales del servidor. Un servidor
-     * normal no llega ni de cerca a 2^30 entidades en una sesion.
+     * Synthetic entity ids start high so they cannot collide with ids the
+     * server hands out. A running server does not come close to this many
+     * entities in a single session.
      */
     private static final AtomicInteger ENTITY_ID = new AtomicInteger(Integer.MAX_VALUE / 2);
+
+    private static Boolean available;
 
     private PacketSupport() {
     }
 
+    /**
+     * @return {@code true} if PacketEvents is present and initialised
+     */
     public static boolean available() {
         if (available != null) return available;
+
         try {
             Class.forName("com.github.retrooper.packetevents.PacketEvents");
-            // Ademas de la clase, el API tiene que estar inicializado por el
-            // plugin de PacketEvents o por tu propio shade.
             available = Bukkit.getPluginManager().getPlugin("packetevents") != null
-                    || isApiInitialized();
-        } catch (Throwable t) {
+                    || isApiInitialised();
+        } catch (Throwable ignored) {
             available = false;
         }
+
         if (!available) {
-            Bukkit.getLogger().info("[Aurora] PacketEvents no encontrado; usando entidades reales.");
+            Bukkit.getLogger().info("[Aurora] PacketEvents not found; using real entities.");
         }
         return available;
     }
 
-    private static boolean isApiInitialized() {
+    /**
+     * Checks whether the API was initialised by a shaded copy rather than by
+     * the standalone plugin.
+     *
+     * @return {@code true} if the API is live
+     */
+    private static boolean isApiInitialised() {
         try {
             Class<?> api = Class.forName("com.github.retrooper.packetevents.PacketEvents");
             return api.getMethod("getAPI").invoke(null) != null;
-        } catch (Throwable t) {
+        } catch (Throwable ignored) {
             return false;
         }
     }
 
+    /**
+     * @return a fresh entity id for a packet-only entity
+     */
     public static int nextEntityId() {
         return ENTITY_ID.incrementAndGet();
     }
 
-    /** Fuerza el backend, util para probar el camino de Bukkit en un server con PE. */
+    /**
+     * Forces the packet backend off, for testing the Bukkit path on a server
+     * that does have PacketEvents.
+     */
     public static void forceDisable() {
         available = false;
     }

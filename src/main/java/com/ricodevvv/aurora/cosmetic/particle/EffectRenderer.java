@@ -4,20 +4,28 @@ import org.bukkit.Location;
 import org.bukkit.entity.Player;
 
 /**
- * Un efecto es una funcion de (jugador, posicion, tick) a particulas.
+ * An effect is a function from (player, position, tick) to particles.
  *
- * A proposito NO es una clase por efecto: en ProCosmetics cada efecto es una
- * clase con su propio runnable, lo que significa 36 archivos casi identicos.
- * Aqui un efecto nuevo son 3 lineas en el catalogo, y como es una interfaz
- * funcional puedes registrar los tuyos sin tocar la libreria.
+ * <p>Deliberately not one class per effect. Defining effects as data rather
+ * than as subclasses means a new one is three lines in a catalogue, and because
+ * this is a functional interface you can register your own without touching the
+ * library.
+ *
+ * <pre>{@code
+ * new ParticleEffectType("halo", "&eHalo", icon, (player, at, tick) ->
+ *         dust.spawn(at.clone().add(0, 2.3, 0), RING.rotateY(tick * 0.1)));
+ * }</pre>
  */
 @FunctionalInterface
 public interface EffectRenderer {
 
     /**
-     * @param player  dueno del efecto
-     * @param origin  posicion del jugador ESTE tick (ya clonada, puedes mutarla)
-     * @param tick    ticks desde que se equipo
+     * Draws one frame of the effect.
+     *
+     * @param player player wearing the effect
+     * @param origin the player's position this tick; already a copy, so it is
+     *               safe to mutate
+     * @param tick   ticks since the effect was equipped
      */
     void render(Player player, Location origin, long tick);
 }

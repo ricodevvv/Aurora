@@ -3,39 +3,67 @@ package com.ricodevvv.aurora.packet;
 import com.ricodevvv.aurora.util.ServerVersion;
 
 /**
- * Indices de entity metadata por version.
+ * Entity metadata indices, resolved per server version.
  *
- * ESTO es lo que PacketEvents NO resuelve por ti: los wrappers unifican los
- * paquetes, pero el indice y el tipo de cada campo los mandas crudos. Y los
- * indices se recorrieron varias veces porque Mojang fue metiendo campos en
- * medio de las clases base.
+ * <p>This is the part PacketEvents does not solve. Its wrappers unify the
+ * <em>packets</em>, but the index and type of each metadata field are passed
+ * raw, and Mojang shifted those indices repeatedly by inserting fields into the
+ * base classes:
  *
- * Historia de los corrimientos (de minecraft.wiki / wiki.vg):
- *  - 1.8            Entity 0-3, Living 6-9,   ArmorStand empieza en 10
- *  - 1.9  a 1.13    Entity 0-5, Living 6-10,  ArmorStand empieza en 11
- *  - 1.14           +Pose en Entity(6) y +BedLocation al final de Living  -> 13
- *  - 1.15 a 1.16    +StingerCount en Living                               -> 14
- *  - 1.17+          +FrozenTicks en Entity(7)                             -> 15
+ * <table border="1">
+ *   <caption>Armour stand flag index by version</caption>
+ *   <tr><th>Version</th><th>What changed</th><th>Index</th></tr>
+ *   <tr><td>1.8</td><td>Entity 0-3, Living 6-9</td><td>10</td></tr>
+ *   <tr><td>1.9-1.13</td><td>Silent and NoGravity added to Entity</td><td>11</td></tr>
+ *   <tr><td>1.14</td><td>Pose added to Entity, BedLocation to Living</td><td>13</td></tr>
+ *   <tr><td>1.15-1.16</td><td>StingerCount added to Living</td><td>14</td></tr>
+ *   <tr><td>1.17+</td><td>FrozenTicks added to Entity</td><td>15</td></tr>
+ * </table>
  *
- * Si algun dia se recorre otra vez, este archivo es el unico que se toca.
+ * <p>If the indices shift again, this is the only file that needs touching.
  */
 public final class MetaIndex {
+
+    /** Base entity bitmask. Never moved across any version. */
+    public static final int ENTITY_FLAGS = 0;
+
+    /** Entity flag bit marking the entity invisible. */
+    public static final byte FLAG_INVISIBLE = 0x20;
+
+    /** Entity flag bit marking the entity as glowing. */
+    public static final byte FLAG_GLOWING = 0x40;
+
+    /**
+     * Custom name index. The index is stable, but the <em>type</em> changed in
+     * 1.13 from {@code String} to {@code Optional<Component>}; see
+     * {@link #nameIsComponent()}.
+     */
+    public static final int CUSTOM_NAME = 2;
+
+    /** Custom name visibility index. */
+    public static final int CUSTOM_NAME_VISIBLE = 3;
+
+    /** Armour stand flag bit: render at half size. */
+    public static final byte STAND_SMALL = 0x01;
+
+    /** Armour stand flag bit: show arms. */
+    public static final byte STAND_ARMS = 0x04;
+
+    /** Armour stand flag bit: hide the base plate. */
+    public static final byte STAND_NO_BASE_PLATE = 0x08;
+
+    /** Armour stand flag bit: marker, giving it no hitbox. */
+    public static final byte STAND_MARKER = 0x10;
+
+    /** Mob flag bit disabling AI. */
+    public static final byte MOB_NO_AI = 0x01;
 
     private MetaIndex() {
     }
 
-    /** Bitmask base de Entity. 0x20 = invisible, 0x40 = glowing. Nunca se movio. */
-    public static final int ENTITY_FLAGS = 0;
-
-    public static final byte FLAG_INVISIBLE = 0x20;
-    public static final byte FLAG_GLOWING = 0x40;
-
-    /** Custom name. OJO: en 1.13+ el TIPO cambia a Optional&lt;Component&gt;. */
-    public static final int CUSTOM_NAME = 2;
-
-    public static final int CUSTOM_NAME_VISIBLE = 3;
-
-    /** Bitmask de ArmorStand: 0x01 small, 0x04 arms, 0x08 sin base, 0x10 marker. */
+    /**
+     * @return the index of the armour stand bitmask on this version
+     */
     public static int armorStandFlags() {
         if (ServerVersion.isLegacy()) return 10;
         if (!ServerVersion.atLeast(14)) return 11;
@@ -44,30 +72,34 @@ public final class MetaIndex {
         return 15;
     }
 
-    public static final byte STAND_SMALL = 0x01;
-    public static final byte STAND_ARMS = 0x04;
-    public static final byte STAND_NO_BASE_PLATE = 0x08;
-    public static final byte STAND_MARKER = 0x10;
-
-    /** Bitmask de Insentient (0x01 = NoAI). Mismo corrimiento que ArmorStand. */
+    /**
+     * @return the index of the mob bitmask, which shifts alongside the armour
+     * stand one because both sit at the end of the same base class chain
+     */
     public static int mobFlags() {
         return armorStandFlags();
     }
 
-    public static final byte MOB_NO_AI = 0x01;
-
-    /** "Es bebe" de Ageable: va justo despues del bitmask de Insentient. */
+    /**
+     * @return the index of the ageable "is baby" field
+     */
     public static int ageableBaby() {
-        // En 1.8 el bebe de Ageable era un byte de "age" en el indice 12.
+        // On 1.8 this was an age byte rather than a boolean, at a fixed index.
         return ServerVersion.isLegacy() ? 12 : mobFlags() + 1;
     }
 
-    /** true si el custom name viaja como Component en vez de String (1.13+). */
+    /**
+     * @return {@code true} if custom names travel as a chat component rather
+     * than a plain string, which is the case from 1.13 onwards
+     */
     public static boolean nameIsComponent() {
         return ServerVersion.isFlattened();
     }
 
-    /** true si "name visible" es Boolean en vez de Byte (1.9+). */
+    /**
+     * @return {@code true} if name visibility is a boolean rather than a byte,
+     * which is the case from 1.9 onwards
+     */
     public static boolean nameVisibleIsBoolean() {
         return !ServerVersion.isLegacy();
     }
