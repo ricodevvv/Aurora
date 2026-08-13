@@ -220,5 +220,26 @@ Compiles clean. Not yet tested on a live server — these are the parts to check
 
 ## License
 
-Not yet chosen. Aurora contains no code from GPL-licensed cosmetic plugins; the cosmetic
+[MIT](LICENSE). Use it in closed-source plugins, commercial or otherwise; keep the
+copyright notice.
+
+Aurora's own source contains no code from GPL-licensed cosmetic plugins — the cosmetic
 system was written from scratch.
+
+### Third-party
+
+| Dependency | License | Scope |
+|---|---|---|
+| [XSeries](https://github.com/CryptoMorin/XSeries) | MIT | required, shaded |
+| [PacketEvents](https://github.com/retrooper/packetevents) | **GPL-3.0** | optional, `provided` |
+| Spigot API | GPL-3.0 | `provided` |
+
+PacketEvents is GPL-3.0. Aurora never bundles it: it is `provided`, resolved reflectively
+at runtime, and Aurora falls back to real entities when it is absent. Whether a plugin that
+calls a separately installed GPL library at runtime forms a combined work is unsettled and
+untested in court, and the Minecraft ecosystem broadly ignores the question — the same
+applies to the Spigot API itself, which is also GPL-3.0.
+
+If that ambiguity matters for a closed-source project, `Models.usePackets(false)` disables
+the packet backend entirely and nothing in Aurora touches PacketEvents. This is not legal
+advice.
