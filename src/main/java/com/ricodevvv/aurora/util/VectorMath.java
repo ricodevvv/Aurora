@@ -3,45 +3,92 @@ package com.ricodevvv.aurora.util;
 import org.bukkit.Location;
 import org.bukkit.util.Vector;
 
+/**
+ * Vector rotation and interpolation helpers.
+ *
+ * <p>The rotation methods mutate and return the vector they are given rather
+ * than allocating a new one. Shape transforms run over hundreds of points every
+ * tick, so the caller is expected to pass a copy when it needs one; {@link
+ * com.ricodevvv.aurora.shape.Shape} already does.
+ */
 public final class VectorMath {
 
     private VectorMath() {
     }
 
-    public static Vector rotateX(Vector v, double angle) {
-        double cos = Math.cos(angle), sin = Math.sin(angle);
-        double y = v.getY() * cos - v.getZ() * sin;
-        double z = v.getY() * sin + v.getZ() * cos;
-        return v.setY(y).setZ(z);
+    /**
+     * Rotates the vector around the X axis.
+     *
+     * @param vector  vector to rotate, mutated in place
+     * @param radians angle in radians
+     * @return the same vector, rotated
+     */
+    public static Vector rotateX(Vector vector, double radians) {
+        double cos = Math.cos(radians);
+        double sin = Math.sin(radians);
+        double y = vector.getY() * cos - vector.getZ() * sin;
+        double z = vector.getY() * sin + vector.getZ() * cos;
+        return vector.setY(y).setZ(z);
     }
 
-    public static Vector rotateY(Vector v, double angle) {
-        double cos = Math.cos(angle), sin = Math.sin(angle);
-        double x = v.getX() * cos + v.getZ() * sin;
-        double z = v.getX() * -sin + v.getZ() * cos;
-        return v.setX(x).setZ(z);
+    /**
+     * Rotates the vector around the Y axis. This is the common case: horizontal
+     * spin, and the one used to align shapes with a player's yaw.
+     *
+     * @param vector  vector to rotate, mutated in place
+     * @param radians angle in radians
+     * @return the same vector, rotated
+     */
+    public static Vector rotateY(Vector vector, double radians) {
+        double cos = Math.cos(radians);
+        double sin = Math.sin(radians);
+        double x = vector.getX() * cos + vector.getZ() * sin;
+        double z = vector.getX() * -sin + vector.getZ() * cos;
+        return vector.setX(x).setZ(z);
     }
 
-    public static Vector rotateZ(Vector v, double angle) {
-        double cos = Math.cos(angle), sin = Math.sin(angle);
-        double x = v.getX() * cos - v.getY() * sin;
-        double y = v.getX() * sin + v.getY() * cos;
-        return v.setX(x).setY(y);
+    /**
+     * Rotates the vector around the Z axis.
+     *
+     * @param vector  vector to rotate, mutated in place
+     * @param radians angle in radians
+     * @return the same vector, rotated
+     */
+    public static Vector rotateZ(Vector vector, double radians) {
+        double cos = Math.cos(radians);
+        double sin = Math.sin(radians);
+        double x = vector.getX() * cos - vector.getY() * sin;
+        double y = vector.getX() * sin + vector.getY() * cos;
+        return vector.setX(x).setY(y);
     }
 
-    /** Orienta un vector "plano" (construido en XZ) para que apunte hacia donde mira la location. */
-    public static Vector rotateToDirection(Vector v, Location facing) {
-        double yaw = Math.toRadians(-(facing.getYaw() + 90));
-        double pitch = Math.toRadians(-facing.getPitch());
-        rotateZ(v, pitch);
-        rotateY(v, yaw);
-        return v;
+    /**
+     * Orients a vector built in the XZ plane so that it faces the direction a
+     * location is looking. Used for shapes that should appear in front of a
+     * player, such as a slash arc or a frontal shield.
+     *
+     * @param vector vector to orient, mutated in place
+     * @param facing location whose yaw and pitch define the direction
+     * @return the same vector, oriented
+     */
+    public static Vector rotateToDirection(Vector vector, Location facing) {
+        rotateZ(vector, Math.toRadians(-facing.getPitch()));
+        rotateY(vector, Math.toRadians(-(facing.getYaw() + 90)));
+        return vector;
     }
 
-    public static Vector lerp(Vector a, Vector b, double t) {
+    /**
+     * Linearly interpolates between two vectors.
+     *
+     * @param from     start vector
+     * @param to       end vector
+     * @param progress progress in {@code 0..1}
+     * @return a new vector between the two; the inputs are left untouched
+     */
+    public static Vector lerp(Vector from, Vector to, double progress) {
         return new Vector(
-                a.getX() + (b.getX() - a.getX()) * t,
-                a.getY() + (b.getY() - a.getY()) * t,
-                a.getZ() + (b.getZ() - a.getZ()) * t);
+                from.getX() + (to.getX() - from.getX()) * progress,
+                from.getY() + (to.getY() - from.getY()) * progress,
+                from.getZ() + (to.getZ() - from.getZ()) * progress);
     }
 }

@@ -8,11 +8,13 @@ import org.bukkit.Location;
 import java.util.function.Supplier;
 
 /**
- * Animacion generica: toma una figura y la dibuja cada tick aplicandole
- * rotacion, escala y desplazamiento vertical en funcion del tiempo.
+ * Renders a {@link Shape} every tick, applying rotation, scaling and vertical
+ * drift as a function of elapsed time.
  *
- * Con esto solo ya sacas la mayoria de efectos (auras, escudos, portales,
- * anillos de invocacion) sin escribir una clase nueva.
+ * <p>Most effects need nothing more than this: auras, shields, portals and
+ * summoning rings are all a shape plus a spin. Write a dedicated
+ * {@link Animation} subclass only when the geometry itself has to change per
+ * tick.
  */
 public class ShapeAnimation extends Animation {
 
@@ -56,13 +58,28 @@ public class ShapeAnimation extends Animation {
         return this;
     }
 
-    /** Hace que la figura suba (o baje) cada tick. */
+    /**
+     * Makes the shape drift vertically each tick.
+     *
+     * @param perTick blocks per tick; negative values sink
+     * @return this animation
+     */
     public ShapeAnimation rise(double perTick) {
         this.yPerTick = perTick;
         return this;
     }
 
-    /** Escala interpolada a lo largo de la duracion. Requiere duration(). */
+    /**
+     * Interpolates the shape's scale across the animation's lifetime.
+     *
+     * <p>Has no effect unless {@link #duration(int)} is set, since progress is
+     * undefined for an endless animation.
+     *
+     * @param from   scale at the start
+     * @param to     scale at the end
+     * @param easing curve to interpolate along
+     * @return this animation
+     */
     public ShapeAnimation scaleOverTime(double from, double to, Easing easing) {
         this.scaleFrom = from;
         this.scaleTo = to;
@@ -70,15 +87,20 @@ public class ShapeAnimation extends Animation {
         return this;
     }
 
-    /** Cicla el color del dust automaticamente (efecto arcoiris). */
+    /**
+     * Cycles the particle colour automatically, producing a rainbow.
+     *
+     * @param speed hue increment per tick; around {@code 0.01} reads well
+     * @return this animation
+     */
     public ShapeAnimation rainbow(float speed) {
         this.colorCycle = true;
         this.hueSpeed = speed;
         return this;
     }
 
-    // Sobrescribimos los fluent de Animation con retorno covariante para poder
-    // encadenar duration()/interval() junto con los metodos de esta clase.
+    // Covariant overrides so the inherited fluent methods can be chained with
+    // this class's own without an intermediate cast.
 
     @Override
     public ShapeAnimation interval(int interval) {

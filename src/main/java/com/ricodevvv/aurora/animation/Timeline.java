@@ -4,73 +4,113 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Secuenciador para encadenar efectos sin anidar cinco runTaskLater.
+ * Sequences actions and animations along a shared clock.
  *
- * <pre>
+ * <p>This exists to replace nested {@code runTaskLater} calls. Because a
+ * timeline is itself an {@link Animation}, chaining fifty effects still costs
+ * one server task rather than fifty.
+ *
+ * <pre>{@code
  * Timeline.create()
- *         .run(() -&gt; Sounds.ANVIL_LAND.playAt(loc, 1, 0.6f))
- *         .play(Animations.ringWave(loc, particle, 0.5, 5, 20, 40))
- *         .wait(10)
- *         .play(Animations.burst(loc, particle, 3, 15, 60))
- *         .wait(20)
- *         .run(() -&gt; loc.getWorld().getPlayers().forEach(p -&gt; ...))
+ *         .run(() -> Sounds.ANVIL_LAND.playAt(location, 1f, 0.6f))
+ *         .play(Animations.ringWave(location, particle, 0.5, 6, 20, 40))
+ *         .wait(15)
+ *         .play(Animations.burst(location, particle, 3, 15, 60))
+ *         .repeat(3)
  *         .start();
- * </pre>
- *
- * Corre dentro del mismo task global que las demas animaciones, asi que
- * encadenar 50 efectos no crea 50 tasks.
+ * }</pre>
  */
 public class Timeline extends Animation {
 
-    private static class Step {
-        final long at;
-        final Runnable action;
+    /**
+     * A single scheduled action and the tick it fires on.
+     */
+    private static final class Step {
 
-        Step(long at, Runnable action) {
+        private final long at;
+        private final Runnable action;
+
+        private Step(long at, Runnable action) {
             this.at = at;
             this.action = action;
         }
     }
 
     private final List<Step> steps = new ArrayList<>();
-    private long cursor = 0;
-    private int index = 0;
-    private int loops = 1;
-    private int loopsDone = 0;
 
+    private long cursor;
+    private int index;
+    private int loops = 1;
+    private int loopsDone;
+
+    /**
+     * @return a new empty timeline
+     */
     public static Timeline create() {
         return new Timeline();
     }
 
-    /** Avanza el cursor: lo que agregues despues ocurre X ticks mas tarde. */
+    /**
+     * Advances the cursor, so anything added afterwards fires later.
+     *
+     * @param ticks ticks to wait; negative values are treated as zero
+     * @return this timeline
+     */
     public Timeline wait(int ticks) {
         cursor += Math.max(0, ticks);
         return this;
     }
 
+    /**
+     * Schedules an action at the current cursor position.
+     *
+     * @param action work to run
+     * @return this timeline
+     */
     public Timeline run(Runnable action) {
         steps.add(new Step(cursor, action));
         return this;
     }
 
-    /** Arranca una animacion en este punto de la linea de tiempo. */
+    /**
+     * Starts an animation at the current cursor position without waiting for it.
+     *
+     * @param animation animation to start
+     * @return this timeline
+     */
     public Timeline play(Animation animation) {
         return run(animation::start);
     }
 
-    /** Arranca la animacion y espera a que termine antes de seguir. */
+    /**
+     * Starts an animation and advances the cursor past its duration.
+     *
+     * @param animation animation to start; must have a finite duration
+     * @return this timeline
+     */
     public Timeline playAndWait(Animation animation) {
         play(animation);
         return wait(Math.max(1, animation.duration()));
     }
 
+    /**
+     * Schedules an animation to be stopped at a later point.
+     *
+     * @param animation animation to stop
+     * @param ticks     ticks after the current cursor
+     * @return this timeline
+     */
     public Timeline stopAfter(Animation animation, int ticks) {
-        long at = cursor + ticks;
-        steps.add(new Step(at, animation::stop));
+        steps.add(new Step(cursor + ticks, animation::stop));
         return this;
     }
 
-    /** Repite toda la secuencia. 0 o negativo = infinito. */
+    /**
+     * Repeats the whole sequence.
+     *
+     * @param times how many times to run it; zero or negative means forever
+     * @return this timeline
+     */
     public Timeline repeat(int times) {
         this.loops = times <= 0 ? -1 : times;
         return this;
