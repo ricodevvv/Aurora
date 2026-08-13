@@ -21,6 +21,10 @@
             <url>https://hub.spigotmc.org/nexus/content/repositories/snapshots/</url>
         </repository>
         <repository>
+            <id>jitpack</id>
+            <url>https://jitpack.io</url>
+        </repository>
+        <repository>
             <id>codemc</id>
             <url>https://repo.codemc.io/repository/maven-releases/</url>
         </repository>
@@ -28,9 +32,9 @@
 
     <dependencies>
         <!--
-            Compilamos contra 1.8.8 A PROPOSITO: todo lo moderno (Particle,
-            DustOptions, BlockData) se resuelve por reflection en runtime, asi
-            que el mismo jar corre de 1.8 a 1.21 sin recompilar.
+            Compiled against 1.8.8 on purpose: everything version-specific is
+            resolved at runtime, so a single jar runs from 1.8 to 1.21+ without
+            recompiling.
         -->
         <dependency>
             <groupId>org.spigotmc</groupId>
@@ -39,11 +43,25 @@
             <scope>provided</scope>
         </dependency>
 
+<!--
+            XSeries drives the particle layer. It is a hard dependency and must
+            be shaded: it is a utility library, so two plugins bundling
+            different versions unshaded will break each other.
+        -->
+        <dependency>
+            <groupId>com.github.cryptomorin</groupId>
+            <artifactId>XSeries</artifactId>
+            <version>13.7.1</version>
+            <scope>compile</scope>
+        </dependency>
+
         <!--
-            PacketEvents es OPCIONAL. Si no esta en runtime, Aurora cae solo al
+            PacketEvents is OPTIONAL. Si no esta en runtime, Aurora cae solo al
             backend de entidades reales (ver PacketSupport). Por eso va como
-            provided y NUNCA se mete en tu jar salvo que tu lo shadees.
-            Revisa la version actual: el API se mueve entre releases.
+            If it is missing at runtime Aurora falls back to real Bukkit
+            entities on its own, so it stays provided and never ends up in your
+            jar unless you shade it yourself. Check the version: the wrapper
+            constructors move between releases.
         -->
         <dependency>
             <groupId>com.github.retrooper</groupId>

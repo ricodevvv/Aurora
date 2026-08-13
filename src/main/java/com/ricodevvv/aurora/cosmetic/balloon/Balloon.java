@@ -1,7 +1,7 @@
 package com.ricodevvv.aurora.cosmetic.balloon;
 
 import com.ricodevvv.aurora.cosmetic.Cosmetic;
-import com.ricodevvv.aurora.particle.ParticleType;
+import com.cryptomorin.xseries.particles.XParticle;
 import com.ricodevvv.aurora.particle.Particles;
 import com.ricodevvv.aurora.shape.Shapes;
 import com.ricodevvv.aurora.util.Entities;
@@ -193,7 +193,7 @@ public class Balloon extends Cosmetic {
 
     private void drawParticleLeash(Location anchor) {
         Vector delta = position.toVector().subtract(anchor.toVector());
-        Particles.of(ParticleType.SMOKE).count(1).speed(0)
+        Particles.of(XParticle.SMOKE).count(1).speed(0)
                 .spawn(anchor, Shapes.line(new Vector(0, 0, 0), delta, 0.25));
     }
 
@@ -228,7 +228,7 @@ public class Balloon extends Cosmetic {
             // Mismo reventon que ProCosmetics: nube de 10 particulas con
             // dispersion 0.15 y velocidad 0.05, mas el sonido de huevo grave.
             Location at = position.clone().add(0, 0.5, 0);
-            Particles.of(ParticleType.CLOUD).count(10).offset(0.15).speed(0.05).spawn(at);
+            Particles.of(XParticle.CLOUD).count(10).offset(0.15).speed(0.05).spawn(at);
             Particles.dust(balloonType.popColor()).count(1).spawn(at, Shapes.sphere(0.35, 10));
             Sounds.POP.playAt(at, 0.5f, 0.5f);
             model.destroy();

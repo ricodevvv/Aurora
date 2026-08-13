@@ -2,7 +2,7 @@ package com.ricodevvv.aurora.cosmetic.particle;
 
 import com.ricodevvv.aurora.cosmetic.CosmeticRegistry;
 import com.ricodevvv.aurora.particle.ParticleBuilder;
-import com.ricodevvv.aurora.particle.ParticleType;
+import com.cryptomorin.xseries.particles.XParticle;
 import com.ricodevvv.aurora.particle.Particles;
 import com.ricodevvv.aurora.shape.Curves;
 import com.ricodevvv.aurora.shape.Glyphs;
@@ -35,18 +35,18 @@ public final class ParticleEffects {
     private static final double TAU = Math.PI * 2;
 
     // Builders reusables
-    private static final ParticleBuilder DUST = Particles.of(ParticleType.DUST).count(1).speed(0);
-    private static final ParticleBuilder FLAME = Particles.of(ParticleType.FLAME).count(1).speed(0.01);
-    private static final ParticleBuilder CLOUD = Particles.of(ParticleType.CLOUD).count(1).speed(0.01);
-    private static final ParticleBuilder SMOKE = Particles.of(ParticleType.LARGE_SMOKE).count(1).speed(0.01);
-    private static final ParticleBuilder HEART = Particles.of(ParticleType.HEART).count(1).speed(0);
-    private static final ParticleBuilder NOTE = Particles.of(ParticleType.NOTE).count(1);
-    private static final ParticleBuilder ENCHANT = Particles.of(ParticleType.ENCHANT).count(1).speed(0.5);
-    private static final ParticleBuilder CRIT = Particles.of(ParticleType.CRIT).count(1).speed(0.05);
-    private static final ParticleBuilder DRIP = Particles.of(ParticleType.DRIPPING_WATER).count(1).speed(0);
-    private static final ParticleBuilder SPLASH = Particles.of(ParticleType.SPLASH).count(2).offset(0.1).speed(0.05);
-    private static final ParticleBuilder PORTAL = Particles.of(ParticleType.PORTAL).count(1).speed(0.4);
-    private static final ParticleBuilder FIREWORK = Particles.of(ParticleType.FIREWORK).count(1).speed(0.05);
+    private static final ParticleBuilder DUST = Particles.of(XParticle.DUST).count(1).speed(0);
+    private static final ParticleBuilder FLAME = Particles.of(XParticle.FLAME).count(1).speed(0.01);
+    private static final ParticleBuilder CLOUD = Particles.of(XParticle.CLOUD).count(1).speed(0.01);
+    private static final ParticleBuilder SMOKE = Particles.of(XParticle.LARGE_SMOKE).count(1).speed(0.01);
+    private static final ParticleBuilder HEART = Particles.of(XParticle.HEART).count(1).speed(0);
+    private static final ParticleBuilder NOTE = Particles.of(XParticle.NOTE).count(1);
+    private static final ParticleBuilder ENCHANT = Particles.of(XParticle.ENCHANT).count(1).speed(0.5);
+    private static final ParticleBuilder CRIT = Particles.of(XParticle.CRIT).count(1).speed(0.05);
+    private static final ParticleBuilder DRIP = Particles.of(XParticle.DRIPPING_WATER).count(1).speed(0);
+    private static final ParticleBuilder SPLASH = Particles.of(XParticle.SPLASH).count(2).offset(0.1).speed(0.05);
+    private static final ParticleBuilder PORTAL = Particles.of(XParticle.PORTAL).count(1).speed(0.4);
+    private static final ParticleBuilder FIREWORK = Particles.of(XParticle.FIREWORK).count(1).speed(0.05);
 
     // Figuras precalculadas
     private static final Shape SHAPE_RING = Shapes.circle(1, 24);

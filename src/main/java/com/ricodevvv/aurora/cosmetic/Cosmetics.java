@@ -2,7 +2,7 @@ package com.ricodevvv.aurora.cosmetic;
 
 import com.ricodevvv.aurora.cosmetic.balloon.BalloonType;
 import com.ricodevvv.aurora.cosmetic.pet.PetType;
-import com.ricodevvv.aurora.particle.ParticleType;
+import com.cryptomorin.xseries.particles.XParticle;
 import com.ricodevvv.aurora.particle.Particles;
 import com.ricodevvv.aurora.util.Colors;
 import com.ricodevvv.aurora.util.Entities;
@@ -40,7 +40,7 @@ public final class Cosmetics {
     public static BalloonType rainbowBalloon() {
         return new BalloonType("arcoiris", "&d&lGlobo Arcoiris", wool((byte) 2, "MAGENTA_WOOL"))
                 .popColor(Colors.hex("#FF60FF"))
-                .ambient(Particles.of(ParticleType.DUST).size(0.8f), 3)
+                .ambient(Particles.of(XParticle.DUST).size(0.8f), 3)
                 .leashLength(3.0);
     }
 
@@ -49,14 +49,14 @@ public final class Cosmetics {
         return new BalloonType("nube", "&fNubecita", wool((byte) 0, "WHITE_WOOL"))
                 .height(2.6)
                 .leashLength(3.2)
-                .ambient(Particles.of(ParticleType.CLOUD).count(2).offset(0.15).speed(0.01), 4);
+                .ambient(Particles.of(XParticle.CLOUD).count(2).offset(0.15).speed(0.01), 4);
     }
 
     /** Globo de calavera, con cabeza en vez de lana. */
     public static BalloonType skullBalloon() {
         return new BalloonType("calavera", "&8Globo Calavera", Items.head())
                 .popColor(Colors.hex("#404040"))
-                .ambient(Particles.of(ParticleType.LARGE_SMOKE).speed(0.01), 6);
+                .ambient(Particles.of(XParticle.LARGE_SMOKE).speed(0.01), 6);
     }
 
     /**
@@ -112,7 +112,7 @@ public final class Cosmetics {
                 .hover(0.35)
                 .speed(0.34)
                 .followDistance(2.6)
-                .trail(Particles.of(ParticleType.FLAME).count(1).speed(0.01), 2);
+                .trail(Particles.of(XParticle.FLAME).count(1).speed(0.01), 2);
     }
 
     // --------------------------------------------------------------- helpers

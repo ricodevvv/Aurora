@@ -1,30 +1,64 @@
 package com.ricodevvv.aurora.particle;
 
+import com.cryptomorin.xseries.particles.XParticle;
 import org.bukkit.Color;
 
-/** Atajo estatico para no andar escribiendo new ParticleBuilder(...). */
+/**
+ * Entry point for spawning particles.
+ *
+ * <p>Every method returns a fresh {@link ParticleBuilder}. Inside a tick loop,
+ * build once and keep it as a field rather than calling these every tick.
+ *
+ * @see ParticleBuilder
+ */
 public final class Particles {
 
     private Particles() {
     }
 
-    public static ParticleBuilder of(ParticleType type) {
-        return new ParticleBuilder(type);
+    /**
+     * Starts a builder for any particle.
+     *
+     * @param particle particle to spawn
+     * @return a new builder
+     */
+    public static ParticleBuilder of(XParticle particle) {
+        return new ParticleBuilder(particle);
     }
 
+    /**
+     * Starts a coloured dust builder, the workhorse for custom-coloured effects.
+     *
+     * @param color dust colour
+     * @return a new builder
+     */
     public static ParticleBuilder dust(Color color) {
-        return new ParticleBuilder(ParticleType.DUST).color(color);
+        return of(XParticle.DUST).color(color);
     }
 
+    /**
+     * Starts a coloured dust builder from RGB components.
+     *
+     * @param r red
+     * @param g green
+     * @param b blue
+     * @return a new builder
+     */
     public static ParticleBuilder dust(int r, int g, int b) {
-        return new ParticleBuilder(ParticleType.DUST).color(r, g, b);
+        return of(XParticle.DUST).color(r, g, b);
     }
 
+    /**
+     * @return a builder for flame particles
+     */
     public static ParticleBuilder flame() {
-        return new ParticleBuilder(ParticleType.FLAME);
+        return of(XParticle.FLAME);
     }
 
+    /**
+     * @return a builder for critical hit particles
+     */
     public static ParticleBuilder crit() {
-        return new ParticleBuilder(ParticleType.CRIT);
+        return of(XParticle.CRIT);
     }
 }
