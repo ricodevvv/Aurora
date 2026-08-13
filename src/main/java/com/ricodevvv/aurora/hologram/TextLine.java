@@ -3,7 +3,9 @@ package com.ricodevvv.aurora.hologram;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.ArmorStand;
 
-/** Linea de texto plano. */
+/**
+ * A hologram line showing plain text, with {@code &} colour codes translated.
+ */
 public class TextLine extends HologramLine {
 
     private String text;

@@ -7,7 +7,12 @@ import org.bukkit.Location;
 
 import java.util.List;
 
-/** Animaciones para hologramas: cabezas girando, rebote, arcoiris, maquina de escribir. */
+/**
+ * Ready-made animations for holograms: spinning heads, bobbing, rainbow text,
+ * typewriters, countdowns and health bars.
+ *
+ * <p>Every method returns a stopped animation; call {@code start()} on it.
+ */
 public final class HologramAnimations {
 
     private static final ChatColor[] RAINBOW = {
@@ -19,9 +24,14 @@ public final class HologramAnimations {
     }
 
     /**
-     * Cabeza girando sobre su eje. Es el clasico de Hypixel.
-     * No teletransporta nada: solo cambia el headPose, o sea un paquete de
-     * metadata por tick y cero movimiento de entidad.
+     * Spins a head on its own axis.
+     *
+     * <p>Nothing is teleported: only the head pose changes, which is one
+     * metadata packet per tick and no entity movement at all.
+     *
+     * @param line           head line to spin
+     * @param degreesPerTick rotation speed in degrees per tick
+     * @return the animation, not yet started
      */
     public static Animation rotate(HeadLine line, double degreesPerTick) {
         double step = Math.toRadians(degreesPerTick);
@@ -37,7 +47,14 @@ public final class HologramAnimations {
         };
     }
 
-    /** Giro con bamboleo: ademas de girar, se inclina de lado a lado. */
+    /**
+     * Spins a head while tilting it from side to side.
+     *
+     * @param line           head line to animate
+     * @param degreesPerTick rotation speed in degrees per tick
+     * @param tiltDegrees    maximum tilt in degrees
+     * @return the animation, not yet started
+     */
     public static Animation wobble(HeadLine line, double degreesPerTick, double tiltDegrees) {
         double step = Math.toRadians(degreesPerTick);
         double tilt = Math.toRadians(tiltDegrees);
@@ -54,9 +71,16 @@ public final class HologramAnimations {
     }
 
     /**
-     * Flotacion arriba/abajo de todo el holograma.
-     * OJO: esto si teletransporta ArmorStands cada tick. Con muchos hologramas
-     * a la vista sube el trafico de paquetes; subele el interval si te pesa.
+     * Bobs the whole hologram up and down.
+     *
+     * <p>Unlike {@link #rotate}, this does teleport armour stands every tick.
+     * With many holograms in view that is real packet traffic; raise the
+     * animation's interval if it shows up in your profiling.
+     *
+     * @param hologram  hologram to bob
+     * @param amplitude travel distance in blocks
+     * @param speed     radians advanced per tick
+     * @return the animation, not yet started
      */
     public static Animation bob(Hologram hologram, double amplitude, double speed) {
         Location base = hologram.location();
@@ -73,7 +97,14 @@ public final class HologramAnimations {
         };
     }
 
-    /** Rebote con easing, para cuando el holograma aparece. */
+    /**
+     * Drops the hologram into place with a bounce, for spawn-in moments.
+     *
+     * @param hologram   hologram to animate
+     * @param fromHeight starting height above its final position
+     * @param ticks      duration in ticks
+     * @return the animation, not yet started
+     */
     public static Animation dropIn(Hologram hologram, double fromHeight, int ticks) {
         Location target = hologram.location();
         return new Animation() {
@@ -85,7 +116,14 @@ public final class HologramAnimations {
         }.duration(ticks);
     }
 
-    /** Texto arcoiris: la onda de color recorre los caracteres. */
+    /**
+     * Cycles a colour wave across the characters of a line.
+     *
+     * @param plainText     text without colour codes
+     * @param line          line to write into
+     * @param ticksPerStep  ticks between colour shifts
+     * @return the animation, not yet started
+     */
     public static Animation rainbow(TextLine line, String plainText, int ticksPerStep) {
         return new Animation() {
             @Override
@@ -101,7 +139,15 @@ public final class HologramAnimations {
         };
     }
 
-    /** Maquina de escribir: revela el texto caracter por caracter y luego lo borra. */
+    /**
+     * Reveals text one character at a time.
+     *
+     * @param line         line to write into
+     * @param fullText     the complete text
+     * @param ticksPerChar ticks between characters
+     * @param loop         whether to restart after a short pause
+     * @return the animation, not yet started
+     */
     public static Animation typewriter(TextLine line, String fullText, int ticksPerChar, boolean loop) {
         return new Animation() {
             @Override
@@ -115,7 +161,16 @@ public final class HologramAnimations {
         };
     }
 
-    /** Onda tipo "ola" sobre el texto: resalta un caracter a la vez. */
+    /**
+     * Highlights one character at a time, producing a travelling wave.
+     *
+     * @param line         line to write into
+     * @param plainText    text without colour codes
+     * @param base         colour of unhighlighted characters
+     * @param highlight    colour of the highlighted character
+     * @param ticksPerStep ticks between steps
+     * @return the animation, not yet started
+     */
     public static Animation wave(TextLine line, String plainText, ChatColor base, ChatColor highlight, int ticksPerStep) {
         return new Animation() {
             @Override
@@ -130,7 +185,14 @@ public final class HologramAnimations {
         };
     }
 
-    /** Cicla varios textos en la misma linea. */
+    /**
+     * Cycles through several texts on one line.
+     *
+     * @param line          line to write into
+     * @param texts         texts to cycle
+     * @param ticksPerText  ticks each text stays visible
+     * @return the animation, not yet started
+     */
     public static Animation cycle(TextLine line, List<String> texts, int ticksPerText) {
         return new Animation() {
             @Override
@@ -141,7 +203,16 @@ public final class HologramAnimations {
         };
     }
 
-    /** Varias cabezas orbitando alrededor del holograma. */
+    /**
+     * Orbits several heads around the hologram.
+     *
+     * @param hologram       hologram at the centre
+     * @param heads          heads to orbit
+     * @param radius         orbit radius in blocks
+     * @param degreesPerTick angular speed in degrees per tick
+     * @param yOffset        vertical offset of the orbit
+     * @return the animation, not yet started
+     */
     public static Animation orbitHeads(Hologram hologram, List<HeadLine> heads,
                                        double radius, double degreesPerTick, double yOffset) {
         Location center = hologram.location();
@@ -161,9 +232,16 @@ public final class HologramAnimations {
         };
     }
 
-    // ------------------------------------------------------------ agregados
+    // ------------------------------------------------------------- additions
 
-    /** El holograma sigue a una entidad (nametag de mob, barra de vida, etc). */
+    /**
+     * Makes the hologram follow an entity, for mob nameplates and health bars.
+     *
+     * @param hologram hologram to move
+     * @param entity   entity to follow
+     * @param yOffset  height above the entity
+     * @return the animation, not yet started
+     */
     public static Animation follow(Hologram hologram, org.bukkit.entity.Entity entity, double yOffset) {
         return new Animation() {
             @Override
@@ -177,7 +255,14 @@ public final class HologramAnimations {
         };
     }
 
-    /** Barra de vida en texto. Pasa el proveedor de porcentaje (0..1). */
+    /**
+     * Renders a text health bar that recolours as it drains.
+     *
+     * @param line     line to write into
+     * @param percent  supplies the current fill, in {@code 0..1}
+     * @param segments how many segments the bar has
+     * @return the animation, not yet started
+     */
     public static Animation healthBar(TextLine line, java.util.function.DoubleSupplier percent,
                                       int segments) {
         return new Animation() {
@@ -197,7 +282,15 @@ public final class HologramAnimations {
         }.interval(4);
     }
 
-    /** Cuenta regresiva en segundos. Al llegar a cero corre el callback. */
+    /**
+     * Counts down in seconds, recolouring as it nears zero.
+     *
+     * @param line    line to write into
+     * @param seconds starting value
+     * @param prefix  text placed before the number
+     * @param onZero  callback fired when it reaches zero; may be {@code null}
+     * @return the animation, not yet started
+     */
     public static Animation countdown(TextLine line, int seconds, String prefix, Runnable onZero) {
         return new Animation() {
             @Override
@@ -215,7 +308,15 @@ public final class HologramAnimations {
         }.interval(20);
     }
 
-    /** Texto que se desplaza dentro de una ventana fija, tipo marquesina. */
+    /**
+     * Scrolls text through a fixed-width window.
+     *
+     * @param line          line to write into
+     * @param text          text to scroll
+     * @param windowSize    visible width in characters
+     * @param ticksPerStep  ticks between shifts
+     * @return the animation, not yet started
+     */
     public static Animation marquee(TextLine line, String text, int windowSize, int ticksPerStep) {
         String padded = text + "   ";
         return new Animation() {
@@ -231,7 +332,15 @@ public final class HologramAnimations {
         };
     }
 
-    /** Parpadeo entre dos textos. Para avisos urgentes. */
+    /**
+     * Alternates between two texts, for urgent notices.
+     *
+     * @param line           line to write into
+     * @param on             text shown in the first state
+     * @param off            text shown in the second state
+     * @param ticksPerState  ticks each state lasts
+     * @return the animation, not yet started
+     */
     public static Animation blink(TextLine line, String on, String off, int ticksPerState) {
         return new Animation() {
             @Override
@@ -242,7 +351,13 @@ public final class HologramAnimations {
         };
     }
 
-    /** La cabeza mira siempre al jugador mas cercano (billboard). */
+    /**
+     * Turns a head to face whichever player is nearest.
+     *
+     * @param line  head line to turn
+     * @param range search radius in blocks
+     * @return the animation, not yet started
+     */
     public static Animation lookAtNearest(HeadLine line, double range) {
         return new Animation() {
             @Override
@@ -272,7 +387,14 @@ public final class HologramAnimations {
         }.interval(2);
     }
 
-    /** Aparicion escalonada: las lineas van saliendo una por una. */
+    /**
+     * Reveals the hologram's lines one after another.
+     *
+     * @param hologram      hologram to reveal
+     * @param texts         final text of each line, in order
+     * @param ticksPerLine  ticks between reveals
+     * @return the animation, not yet started
+     */
     public static Animation revealLines(Hologram hologram, java.util.List<String> texts, int ticksPerLine) {
         return new Animation() {
             @Override

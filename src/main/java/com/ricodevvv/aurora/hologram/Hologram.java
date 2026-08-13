@@ -34,7 +34,7 @@ public class Hologram {
         REGISTRY.add(this);
     }
 
-    // ----------------------------------------------------------- construccion
+    // ---------------------------------------------------------- construction
 
     public Hologram text(String text) {
         return line(new TextLine(text));
@@ -54,14 +54,19 @@ public class Hologram {
         return this;
     }
 
-    /** Espacio extra entre lineas. */
+    /**
+     * Sets the vertical gap between lines.
+     *
+     * @param gap gap in blocks
+     * @return this hologram
+     */
     public Hologram gap(double gap) {
         this.lineGap = gap;
         if (spawned) reposition();
         return this;
     }
 
-    // ------------------------------------------------------------ ciclo vida
+    // ------------------------------------------------------------- lifecycle
 
     public Hologram spawn() {
         if (spawned) return this;
@@ -80,7 +85,9 @@ public class Hologram {
         spawned = false;
     }
 
-    /** Elimina el holograma y lo saca del registro. */
+    /**
+     * Removes the hologram and drops it from the global registry.
+     */
     public void destroy() {
         despawn();
         lines.clear();
@@ -110,7 +117,7 @@ public class Hologram {
         return total;
     }
 
-    // --------------------------------------------------------------- acceso
+    // ---------------------------------------------------------------- access
 
     public void setLine(int index, String text) {
         if (index < 0 || index >= lines.size()) return;
@@ -122,7 +129,14 @@ public class Hologram {
         return lines.get(index);
     }
 
-    /** Primera linea del tipo pedido (comodo para agarrar la cabeza y animarla). */
+    /**
+     * Finds the first line of a given type, which is the convenient way to grab
+     * a head line and animate it.
+     *
+     * @param type line class to look for
+     * @param <T>  line type
+     * @return the first matching line, or {@code null} if there is none
+     */
     @SuppressWarnings("unchecked")
     public <T extends HologramLine> T first(Class<T> type) {
         for (HologramLine line : lines) {
@@ -143,7 +157,9 @@ public class Hologram {
         return spawned;
     }
 
-    /** Limpia todos los hologramas creados. Llamalo en onDisable(). */
+    /**
+     * Despawns every hologram ever created. Called during shutdown.
+     */
     public static void despawnAll() {
         synchronized (REGISTRY) {
             for (Hologram hologram : new ArrayList<>(REGISTRY)) hologram.despawn();

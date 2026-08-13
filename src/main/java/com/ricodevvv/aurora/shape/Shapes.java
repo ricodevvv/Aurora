@@ -5,7 +5,13 @@ import org.bukkit.util.Vector;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Catalogo de figuras. Todas se generan centradas en (0,0,0). */
+/**
+ * Catalogue of geometric shapes. Every shape is generated centred on the
+ * origin, so it can be dropped at any location without further translation.
+ *
+ * <p>Point counts are the cost knob: a shape is drawn once per particle spawn,
+ * so a 200-point sphere is 200 particles per frame.
+ */
 public final class Shapes {
 
     private static final double TAU = Math.PI * 2;
@@ -22,7 +28,15 @@ public final class Shapes {
         return Shape.of(list);
     }
 
-    /** Arco parcial, util para barras de progreso circulares. */
+    /**
+     * Partial arc, useful for circular progress bars.
+     *
+     * @param radius  arc radius
+     * @param points  number of points
+     * @param fromDeg start angle in degrees
+     * @param toDeg   end angle in degrees
+     * @return the arc
+     */
     public static Shape arc(double radius, int points, double fromDeg, double toDeg) {
         List<Vector> list = new ArrayList<>(points);
         double from = Math.toRadians(fromDeg), to = Math.toRadians(toDeg);
@@ -33,7 +47,15 @@ public final class Shapes {
         return Shape.of(list);
     }
 
-    /** Esfera con distribucion de Fibonacci: puntos parejos, sin acumularse en los polos. */
+    /**
+     * Sphere using a Fibonacci distribution, which spreads points evenly
+     * instead of bunching them at the poles the way naive spherical
+     * coordinates do.
+     *
+     * @param radius sphere radius
+     * @param points number of points
+     * @return the sphere
+     */
     public static Shape sphere(double radius, int points) {
         List<Vector> list = new ArrayList<>(points);
         double golden = Math.PI * (3 - Math.sqrt(5));
@@ -56,7 +78,15 @@ public final class Shapes {
         return Shape.of(list);
     }
 
-    /** Doble helice tipo ADN. */
+    /**
+     * Twin helices, like a DNA strand.
+     *
+     * @param radius helix radius
+     * @param height total height
+     * @param turns  how many full turns
+     * @param points points per strand
+     * @return the double helix
+     */
     public static Shape doubleHelix(double radius, double height, double turns, int points) {
         List<Vector> list = new ArrayList<>(points * 2);
         for (int i = 0; i < points; i++) {
@@ -69,7 +99,15 @@ public final class Shapes {
         return Shape.of(list);
     }
 
-    /** Cono/vortice: el radio crece con la altura. */
+    /**
+     * Cone-shaped vortex whose radius grows with height.
+     *
+     * @param radius radius at the top
+     * @param height total height
+     * @param turns  how many full turns
+     * @param points number of points
+     * @return the vortex
+     */
     public static Shape vortex(double radius, double height, double turns, int points) {
         List<Vector> list = new ArrayList<>(points);
         for (int i = 0; i < points; i++) {
@@ -97,7 +135,13 @@ public final class Shapes {
         return Shape.of(list);
     }
 
-    /** Cubo en alambre (solo aristas). */
+    /**
+     * Wireframe cube: only the edges are populated.
+     *
+     * @param size    edge length
+     * @param spacing distance between points
+     * @return the cube outline
+     */
     public static Shape cube(double size, double spacing) {
         List<Vector> list = new ArrayList<>();
         double h = size / 2;
@@ -135,7 +179,13 @@ public final class Shapes {
         return Shape.of(list);
     }
 
-    /** Corazon en el plano XY. */
+    /**
+     * Heart curve in the XY plane.
+     *
+     * @param scale  overall size
+     * @param points number of points
+     * @return the heart
+     */
     public static Shape heart(double scale, int points) {
         List<Vector> list = new ArrayList<>(points);
         for (int i = 0; i < points; i++) {
@@ -147,7 +197,15 @@ public final class Shapes {
         return Shape.of(list);
     }
 
-    /** Rosa polar r = cos(k * theta). Con k impar salen k petalos, con k par salen 2k. */
+    /**
+     * Polar rose, {@code r = cos(k * theta)}. An odd {@code k} produces
+     * {@code k} petals, an even one produces {@code 2k}.
+     *
+     * @param k      petal parameter
+     * @param radius maximum radius
+     * @param points number of points
+     * @return the rose
+     */
     public static Shape rose(int k, double radius, int points) {
         List<Vector> list = new ArrayList<>(points);
         for (int i = 0; i < points; i++) {
@@ -171,7 +229,13 @@ public final class Shapes {
         return Shape.of(list);
     }
 
-    /** Nube aleatoria dentro de una esfera, para auras difusas. */
+    /**
+     * Random points inside a sphere, for diffuse auras and dust clouds.
+     *
+     * @param radius sphere radius
+     * @param points number of points
+     * @return the cloud
+     */
     public static Shape cloud(double radius, int points) {
         List<Vector> list = new ArrayList<>(points);
         java.util.Random random = new java.util.Random();
@@ -187,7 +251,7 @@ public final class Shapes {
         return Shape.of(list);
     }
 
-    // ------------------------------------------------------------ agregados
+    // ------------------------------------------------------------- additions
 
     public static Shape ellipse(double radiusX, double radiusZ, int points) {
         List<Vector> list = new ArrayList<>(points);
@@ -198,7 +262,14 @@ public final class Shapes {
         return Shape.of(list);
     }
 
-    /** Poligono regular: 3 = triangulo, 6 = hexagono, etc. */
+    /**
+     * Regular polygon: {@code 3} is a triangle, {@code 6} a hexagon.
+     *
+     * @param sides         number of sides
+     * @param radius        circumradius
+     * @param pointsPerEdge points along each edge
+     * @return the polygon outline
+     */
     public static Shape polygon(int sides, double radius, int pointsPerEdge) {
         List<Vector> list = new ArrayList<>(sides * pointsPerEdge);
         for (int i = 0; i < sides; i++) {
@@ -213,7 +284,13 @@ public final class Shapes {
         return Shape.of(list);
     }
 
-    /** Media esfera (cupula). Sirve para escudos de zona y domos de proteccion. */
+    /**
+     * Upper hemisphere, for zone shields and protection domes.
+     *
+     * @param radius dome radius
+     * @param points number of points
+     * @return the dome
+     */
     public static Shape dome(double radius, int points) {
         List<Vector> list = new ArrayList<>(points);
         double golden = Math.PI * (3 - Math.sqrt(5));
@@ -226,7 +303,14 @@ public final class Shapes {
         return Shape.of(list);
     }
 
-    /** Rejilla plana, para marcar areas o zonas de safe zone. */
+    /**
+     * Flat grid, for marking out areas and safe zones.
+     *
+     * @param width   size along X
+     * @param depth   size along Z
+     * @param spacing distance between points
+     * @return the grid
+     */
     public static Shape grid(double width, double depth, double spacing) {
         List<Vector> list = new ArrayList<>();
         for (double x = -width / 2; x <= width / 2; x += spacing) {
@@ -237,7 +321,13 @@ public final class Shapes {
         return Shape.of(list);
     }
 
-    /** Tres anillos cruzados, tipo modelo atomico. */
+    /**
+     * Three intersecting rings, like a classic atom diagram.
+     *
+     * @param radius         ring radius
+     * @param pointsPerRing  points in each ring
+     * @return the atom shape
+     */
     public static Shape atom(double radius, int pointsPerRing) {
         List<Vector> list = new ArrayList<>(pointsPerRing * 3);
         list.addAll(circle(radius, pointsPerRing).points());
@@ -247,9 +337,16 @@ public final class Shapes {
     }
 
     /**
-     * Alas de plumas en el plano XY (queda de espaldas al jugador si la rotas
-     * con su yaw). Los numeros salieron de prueba y error: muevele al bend si
-     * las quieres mas caidas o mas rectas.
+     * Feathered wings in the XY plane. Rotate by a player's yaw to sit them on
+     * their back.
+     *
+     * <p>The curvature constants were tuned by eye rather than derived; adjust
+     * the internal bend factor for droopier or straighter feathers.
+     *
+     * @param size             wingspan
+     * @param feathers         feathers per wing
+     * @param pointsPerFeather points along each feather
+     * @return the wings
      */
     public static Shape wings(double size, int feathers, int pointsPerFeather) {
         List<Vector> list = new ArrayList<>(feathers * pointsPerFeather * 2);
@@ -268,7 +365,15 @@ public final class Shapes {
         return Shape.of(list);
     }
 
-    /** Anillo con puas hacia afuera, tipo circulo de invocacion. */
+    /**
+     * Ring with outward spikes, for summoning circles.
+     *
+     * @param radius      ring radius
+     * @param spikes      number of spikes
+     * @param spikeLength how far each spike extends
+     * @param ringPoints  points in the ring itself
+     * @return the rune circle
+     */
     public static Shape runeCircle(double radius, int spikes, double spikeLength, int ringPoints) {
         List<Vector> list = new ArrayList<>(circle(radius, ringPoints).points());
         for (int i = 0; i < spikes; i++) {

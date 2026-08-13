@@ -5,12 +5,15 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.EulerAngle;
 
 /**
- * Linea que muestra un item/cabeza flotando. Se puede rotar con
- * HologramAnimations.rotate(), que es el clasico "rotating head" de Hypixel.
+ * A hologram line showing a floating item or head.
  *
- * El truco: el item va como casco de un ArmorStand pequeno e invisible, y la
- * rotacion se hace moviendo el headPose (no teletransportando la entidad),
- * asi que el giro es suave y no genera trafico de paquetes de movimiento.
+ * <p>Pair it with {@link HologramAnimations#rotate(HeadLine, double)} for the
+ * classic spinning head.
+ *
+ * <p>The item is worn as the helmet of a small invisible armour stand, and
+ * rotation is applied through the head pose rather than by teleporting the
+ * entity. That keeps the spin smooth and costs one metadata packet per tick
+ * instead of a stream of movement packets.
  */
 public class HeadLine extends HologramLine {
 
@@ -20,7 +23,7 @@ public class HeadLine extends HologramLine {
 
     public HeadLine(ItemStack item) {
         this.item = item;
-        // Compensacion para que el modelo quede a la altura de la linea.
+        // Offsets the stand so the worn model lines up with the line's slot.
         this.yAdjust = -1.45;
     }
 
@@ -47,7 +50,13 @@ public class HeadLine extends HologramLine {
         if (stand != null && stand.isValid()) stand.setHelmet(item);
     }
 
-    /** Angulos en radianes. */
+    /**
+     * Sets the head pose.
+     *
+     * @param pitch pitch in radians
+     * @param yaw   yaw in radians
+     * @param roll  roll in radians
+     */
     public void setPose(double pitch, double yaw, double roll) {
         this.pitch = pitch;
         this.yaw = yaw;

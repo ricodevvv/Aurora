@@ -5,12 +5,14 @@ import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.EntityType;
 
 /**
- * Una linea del holograma. Usa ArmorStands reales (no paquetes) a proposito:
- * la API de ArmorStand no cambio de 1.8 a 1.21, asi que esto corre en todas
- * las versiones sin una sola linea de NMS.
+ * A single line of a {@link Hologram}.
  *
- * Si despues quieres holograma por jugador, sustituye spawnStand() por tu
- * capa de paquetes; el resto del sistema no se entera.
+ * <p>Backed by a real armour stand rather than packets, on purpose: the
+ * {@code ArmorStand} API did not change between 1.8 and 1.21, so this runs on
+ * every version without a line of NMS.
+ *
+ * <p>To make holograms per-player later, replace {@link #spawnStand(Location)}
+ * with a packet layer; nothing else in the system needs to know.
  */
 public abstract class HologramLine {
 
@@ -18,10 +20,16 @@ public abstract class HologramLine {
     protected Location location;
     protected double yAdjust = 0;
 
-    /** Cuanto espacio vertical ocupa esta linea. */
+    /**
+     * @return the vertical space this line occupies, in blocks
+     */
     public abstract double height();
 
-    /** Se llama despues de crear el ArmorStand para configurarlo. */
+    /**
+     * Configures the freshly spawned stand for this line's content.
+     *
+     * @param stand the stand backing this line
+     */
     protected abstract void apply(ArmorStand stand);
 
     public void spawn(Location at) {
@@ -53,7 +61,7 @@ public abstract class HologramLine {
         entity.setArms(false);
         entity.setMarker(true);
         entity.setRemoveWhenFarAway(false);
-        // Metodos que no existen en 1.8: se intentan y si no, ni modo.
+        // Not present on 1.8; attempted and quietly skipped if missing.
         try {
             entity.getClass().getMethod("setCollidable", boolean.class).invoke(entity, false);
         } catch (Throwable ignored) {
@@ -75,7 +83,12 @@ public abstract class HologramLine {
         return location;
     }
 
-    /** Ajuste fino de altura, por si la linea te queda alta o baja. */
+    /**
+     * Nudges this line vertically, for when a model sits too high or too low.
+     *
+     * @param yAdjust offset in blocks
+     * @return this line
+     */
     public HologramLine yAdjust(double yAdjust) {
         this.yAdjust = yAdjust;
         return this;

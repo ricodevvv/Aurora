@@ -7,23 +7,31 @@ import org.bukkit.Location;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
- * Texto flotante de un solo uso: aparece, sube y se borra solo.
- * Es el clasico indicador de dano de los practice.
+ * Single-use floating text that rises and removes itself: the damage indicator
+ * familiar from practice servers.
  *
- * Cada llamada crea y destruye un ArmorStand. En un combate 1v1 no pasa nada,
- * pero si vas a spamear esto en un evento de 100 jugadores considera pool o
- * limitar por jugador.
+ * <p>Each call spawns and destroys an armour stand. That is fine for a duel,
+ * but in a hundred-player event it adds up; pool the stands or rate-limit per
+ * player before using it at that scale.
  */
 public final class FloatingText {
 
     private FloatingText() {
     }
 
-    /** Texto que sube y desaparece. */
+    /**
+     * Spawns text that rises and fades out.
+     *
+     * @param at         where it appears
+     * @param text       text to show, supporting {@code &} colour codes
+     * @param ticks      lifetime in ticks
+     * @param riseHeight how far it travels upward, in blocks
+     * @return the running animation, already started
+     */
     public static Animation spawn(Location at, String text, int ticks, double riseHeight) {
         TextLine line = new TextLine(text);
-        Location start = at.clone().add(
-                rand(0.4), rand(0.2), rand(0.4)); // dispersion para que no se encimen
+        // Scattered slightly so rapid hits do not stack into one blob.
+        Location start = at.clone().add(rand(0.4), rand(0.2), rand(0.4));
         line.spawn(start);
 
         return new Animation() {
@@ -40,17 +48,35 @@ public final class FloatingText {
         }.duration(ticks).start();
     }
 
-    /** Indicador de dano en rojo. */
+    /**
+     * Red damage indicator.
+     *
+     * @param at     where it appears
+     * @param amount damage dealt
+     * @return the running animation
+     */
     public static Animation damage(Location at, double amount) {
         return spawn(at, "&c-" + format(amount), 24, 1.0);
     }
 
-    /** Indicador de curacion en verde. */
+    /**
+     * Green healing indicator.
+     *
+     * @param at     where it appears
+     * @param amount health restored
+     * @return the running animation
+     */
     public static Animation heal(Location at, double amount) {
         return spawn(at, "&a+" + format(amount), 24, 1.0);
     }
 
-    /** Indicador critico, mas grande y mas lento. */
+    /**
+     * Critical hit indicator: larger, slower and gold.
+     *
+     * @param at     where it appears
+     * @param amount damage dealt
+     * @return the running animation
+     */
     public static Animation critical(Location at, double amount) {
         return spawn(at, "&6&l✦ " + format(amount), 32, 1.4);
     }
