@@ -34,8 +34,11 @@ import org.bukkit.plugin.java.JavaPlugin;
 import java.util.Arrays;
 
 /**
- * Plugin de ejemplo. No es necesario para usar la libreria: es solo para que
- * veas el API en accion. /aurora aura|escudo|onda|vortice|holo|rayo
+ * Example plugin, not required to use the library.
+ *
+ * <p>It exists to show the API in use and to give something to test against on
+ * a live server. Run {@code /aurora <effect>} in game; with no arguments the
+ * command lists everything available.
  */
 public class AuroraDemo extends JavaPlugin {
 
@@ -43,7 +46,7 @@ public class AuroraDemo extends JavaPlugin {
     public void onEnable() {
         Aurora.init(this);
         Cosmetics.registerDefaults();
-        // Sin esto, cada jugador que se desconecte deja su globo flotando.
+        // Without this, every disconnect leaves that player's cosmetics behind.
         getServer().getPluginManager().registerEvents(new CosmeticListener(), this);
     }
 
@@ -61,7 +64,7 @@ public class AuroraDemo extends JavaPlugin {
 
         switch (type) {
             case "aura": {
-                // Circulo arcoiris girando a los pies del jugador, 10 segundos.
+                // A rainbow ring spinning at the player's feet for ten seconds.
                 ShapeAnimation animation = new ShapeAnimation(
                         Animations.follow(player, 0.1),
                         Shapes.circle(1.2, 30),
@@ -76,7 +79,7 @@ public class AuroraDemo extends JavaPlugin {
                 break;
             }
             case "onda": {
-                // Onda expansiva estilo kill effect.
+                // Expanding shockwave, in the style of a kill effect.
                 Animations.ringWave(location, Particles.of(XParticle.FLAME).speed(0.01), 0.5, 6, 25, 40)
                         .start();
                 Animations.burst(location.clone().add(0, 1, 0),
@@ -126,7 +129,7 @@ public class AuroraDemo extends JavaPlugin {
                 Animation typing = HologramAnimations.typewriter(last, "&aClick derecho para abrir...", 2, true);
                 typing.start();
 
-                // Anillo de particulas alrededor del holograma
+                // A ring of particles around the hologram.
                 new ShapeAnimation(hologram.location().add(0, 0.2, 0),
                         Shapes.circle(0.8, 20),
                         Particles.dust(Color.AQUA).size(0.8f))
@@ -135,7 +138,7 @@ public class AuroraDemo extends JavaPlugin {
                 break;
             }
             case "menu": {
-                // Menu flotante con varias cabezas orbitando
+                // A floating menu with heads orbiting around it.
                 Hologram hologram = new Hologram(location.clone().add(0, 2.5, 0)).text("&e&lSELECCIONA").spawn();
                 HeadLine a = new HeadLine(Items.head("Notch"));
                 HeadLine b = new HeadLine(Items.head("Herobrine"));
@@ -186,7 +189,7 @@ public class AuroraDemo extends JavaPlugin {
                 break;
             }
             case "combo": {
-                // Secuencia completa: sonido, onda, pausa, explosion, texto
+                // Full sequence: sound, wave, pause, explosion, text.
                 Timeline.create()
                         .run(() -> Sounds.ANVIL_LAND.playAt(location, 1f, 0.6f))
                         .play(Animations.ringWave(location, Particles.dust(Colors.hex("#FFAA00")), 0.5, 6, 20, 40))

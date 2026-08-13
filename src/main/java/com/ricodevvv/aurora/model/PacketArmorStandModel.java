@@ -34,21 +34,20 @@ import java.util.UUID;
 import java.util.function.Supplier;
 
 /**
- * Armor stand falso, construido con paquetes.
+ * A packet-only armour stand: visible to clients, absent from the server.
  *
- * Ventaja sobre la entidad real:
- *  - No existe en el mundo: no cuenta para el limite de entidades, no lo ve el
- *    anticheat, no lo tickea el servidor, no aparece en /kill @e.
- *  - Se puede mostrar a unos jugadores y a otros no (cosmeticos privados,
- *    vanish, equipos).
- *  - Cero carga en el main thread mas alla de armar los paquetes.
+ * <p>Compared with a real entity it does not count towards entity limits, is
+ * not ticked by the server, never appears in {@code /kill @e} and is invisible
+ * to anti-cheats. It can also be shown to some players and not others, which a
+ * real entity cannot without packet manipulation anyway.
  *
- * Costo: hay que llevar a mano el tracking de espectadores, que es justo lo que
- * hace refreshViewers().
+ * <p>The cost is that viewer tracking becomes Aurora's responsibility, which is
+ * what {@link #refreshViewers()} handles.
  *
- * NOTA: esta clase importa PacketEvents. Solo se carga desde Models.armorStand()
- * cuando PacketSupport.available() dio true, asi que en un server sin
- * PacketEvents nunca se toca y no truena.
+ * <p>This class imports PacketEvents directly. It is only ever loaded from
+ * {@link Models#armorStand(boolean, java.util.function.Supplier)} after
+ * {@link PacketSupport#available()} returned {@code true}, so a server without
+ * PacketEvents never touches it and cannot hit a {@code NoClassDefFoundError}.
  */
 public class PacketArmorStandModel implements Model {
 
@@ -72,7 +71,7 @@ public class PacketArmorStandModel implements Model {
         this.viewerSupplier = viewerSupplier;
     }
 
-    // ------------------------------------------------------------- ciclo vida
+    // -------------------------------------------------------------- lifecycle
 
     @Override
     public void spawn(Location at) {
@@ -103,7 +102,7 @@ public class PacketArmorStandModel implements Model {
         return entityId;
     }
 
-    // ------------------------------------------------------------ movimiento
+    // --------------------------------------------------------------- movement
 
     @Override
     public void teleport(Location at) {
@@ -125,7 +124,7 @@ public class PacketArmorStandModel implements Model {
         broadcast(new WrapperPlayServerEntityHeadLook(entityId, yaw));
     }
 
-    // ------------------------------------------------------------- apariencia
+    // ------------------------------------------------------------- appearance
 
     @Override
     public void helmet(ItemStack item) {
@@ -148,13 +147,14 @@ public class PacketArmorStandModel implements Model {
         return true;
     }
 
-    // -------------------------------------------------------------- viewers
+    // ---------------------------------------------------------------- viewers
 
     /**
-     * Recalcula quien ve la entidad y manda solo los deltas: spawn a los que
-     * entraron, destroy a los que salieron. Sin esto, un jugador que se acerca
-     * nunca veria el globo (los paquetes no se reenvian solos como con una
-     * entidad real).
+     * Recomputes the audience and sends only the differences: a spawn to
+     * players who came into range, a destroy to those who left.
+     *
+     * <p>Without this a player walking up would never see the model at all,
+     * because unlike a real entity nothing re-sends its packets automatically.
      */
     public void refreshViewers() {
         if (!spawned || location == null || location.getWorld() == null) return;
@@ -200,17 +200,17 @@ public class PacketArmorStandModel implements Model {
         }
     }
 
-    // -------------------------------------------------------------- paquetes
+    // ---------------------------------------------------------------- packets
 
     private WrapperPlayServerEntityMetadata metadataPacket() {
         List<EntityData<?>> data = new ArrayList<>(4);
 
-        // Invisible: bitmask base de Entity, indice 0 en todas las versiones.
+        // Invisible: base entity bitmask, index 0 on every version.
         data.add(new EntityData<>(MetaIndex.ENTITY_FLAGS, EntityDataTypes.BYTE,
                 MetaIndex.FLAG_INVISIBLE));
 
-        // Flags de ArmorStand: sin base, marker, y small si toca. El indice
-        // cambia entre 1.8 y 1.21, por eso va por MetaIndex.
+        // Armour stand flags. The index shifted repeatedly between 1.8 and
+        // 1.21, which is why it goes through MetaIndex.
         byte flags = MetaIndex.STAND_NO_BASE_PLATE;
         if (small) flags |= MetaIndex.STAND_SMALL;
         data.add(new EntityData<>(MetaIndex.armorStandFlags(), EntityDataTypes.BYTE, flags));
@@ -221,7 +221,13 @@ public class PacketArmorStandModel implements Model {
         return new WrapperPlayServerEntityMetadata(entityId, data);
     }
 
-    /** El tipo del custom name cambio en 1.13: String -> Optional&lt;Component&gt;. */
+    /**
+     * Appends the custom name, whose type changed in 1.13 from a plain
+     * {@code String} to an {@code Optional<Component>}.
+     *
+     * @param data metadata list to append to
+     * @param text name text, supporting {@code &} colour codes
+     */
     private void addName(List<EntityData<?>> data, String text) {
         String colored = org.bukkit.ChatColor.translateAlternateColorCodes('&', text);
         if (MetaIndex.nameIsComponent()) {

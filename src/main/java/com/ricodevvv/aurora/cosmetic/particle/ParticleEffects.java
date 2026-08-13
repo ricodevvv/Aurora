@@ -20,21 +20,24 @@ import org.bukkit.util.Vector;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
- * Catalogo de efectos.
+ * The built-in catalogue of particle effects.
  *
- * Los builders de particulas se crean UNA vez como constantes y se reusan: son
- * mutables a proposito, asi que dentro de un renderer solo se les cambia color
- * o material antes de spawnear. Crear un builder por tick con 50 jugadores
- * equipados es basura de GC gratis.
- *
- * Las figuras estaticas tambien se precalculan (SHAPE_*), porque generar una
- * esfera de 80 puntos cada tick es trigonometria pura desperdiciada.
+ * <p>Two allocation rules are followed throughout, and both matter at scale:
+ * <ul>
+ *   <li>Particle builders are created once as constants and reused. They are
+ *       mutable by design, so a renderer only adjusts colour or material
+ *       before spawning. Allocating a builder per tick across fifty wearers is
+ *       free garbage.</li>
+ *   <li>Static geometry is precomputed into the {@code SHAPE_*} constants.
+ *       Regenerating an eighty-point sphere every tick is wasted
+ *       trigonometry.</li>
+ * </ul>
  */
 public final class ParticleEffects {
 
     private static final double TAU = Math.PI * 2;
 
-    // Builders reusables
+    // Reusable particle builders.
     private static final ParticleBuilder DUST = Particles.of(XParticle.DUST).count(1).speed(0);
     private static final ParticleBuilder FLAME = Particles.of(XParticle.FLAME).count(1).speed(0.01);
     private static final ParticleBuilder CLOUD = Particles.of(XParticle.CLOUD).count(1).speed(0.01);
@@ -48,7 +51,7 @@ public final class ParticleEffects {
     private static final ParticleBuilder PORTAL = Particles.of(XParticle.PORTAL).count(1).speed(0.4);
     private static final ParticleBuilder FIREWORK = Particles.of(XParticle.FIREWORK).count(1).speed(0.05);
 
-    // Figuras precalculadas
+    // Precomputed static geometry.
     private static final Shape SHAPE_RING = Shapes.circle(1, 24);
     private static final Shape SHAPE_DOME = Shapes.dome(1.8, 60);
     private static final Shape SHAPE_WINGS = Shapes.wings(1.6, 6, 8);
@@ -59,7 +62,7 @@ public final class ParticleEffects {
     private ParticleEffects() {
     }
 
-    // --------------------------------------------------------------- fuego
+    // ----------------------------------------------------------------- fire
 
     public static ParticleEffectType auraDeFuego() {
         return new ParticleEffectType("aura_fuego", "&6Aura de Fuego", icon("BLAZE_POWDER", "FIRE_CHARGE"),
@@ -77,8 +80,8 @@ public final class ParticleEffects {
     public static ParticleEffectType anillosDeLlama() {
         return new ParticleEffectType("anillos_llama", "&cAnillos de Llama", icon("MAGMA_CREAM", "SLIME_BALL"),
                 (player, at, tick) -> {
-                    // Tres anillos a distinta altura girando en sentidos opuestos:
-                    // es lo que evita que se vea como un cilindro plano.
+                    // Three rings at different heights spinning in opposite directions,
+                    // which is what stops it reading as a flat cylinder.
                     for (int ring = 0; ring < 3; ring++) {
                         double y = 0.3 + ring * 0.7;
                         double spin = (ring % 2 == 0 ? 1 : -1) * tick * 0.12;
@@ -87,8 +90,8 @@ public final class ParticleEffects {
                                 SHAPE_RING.scale(radius).rotateY(spin));
                     }
                 })
-                // Al caminar: dos estelas a los costados, girando con el yaw.
-                // Sus constantes: rango 0.1, count 1, offset (0.3, 0.0, 0.6), speed 0.
+                // Walking: two trails at the sides, rotating with the yaw.
+                // Tuned constants: range 0.1, count 1, offset (0.3, 0, 0.6), speed 0.
                 .moving((player, at, tick) -> {
                     double yaw = Math.toRadians(at.getYaw());
                     double dx = 0.1 * Math.cos(yaw), dz = 0.1 * Math.sin(yaw);
@@ -110,7 +113,7 @@ public final class ParticleEffects {
                 }).interval(2);
     }
 
-    // ---------------------------------------------------------------- hielo
+    // ------------------------------------------------------------------ ice
 
     public static ParticleEffectType senorDelHielo() {
         return new ParticleEffectType("senor_hielo", "&bSenor del Hielo", icon("PACKED_ICE", "ICE"),
@@ -119,7 +122,7 @@ public final class ParticleEffects {
                     DUST.color(Colors.gradient(Colors.ICE, t)).size(1.0f).range(30)
                             .spawn(at.clone().add(0, 0.1, 0),
                                     SHAPE_RING.scale(1.4).rotateY(tick * 0.08));
-                    // Cristales cayendo alrededor
+                    // Crystals falling around the player.
                     if (tick % 4 == 0) {
                         double a = random() * TAU;
                         DUST.color(Colors.hex("#DFF6FF")).size(0.8f).spawn(at.clone().add(
@@ -148,7 +151,7 @@ public final class ParticleEffects {
                 }).interval(2);
     }
 
-    // ---------------------------------------------------------------- agua
+    // ---------------------------------------------------------------- water
 
     public static ParticleEffectType nubeDeLluvia() {
         return new ParticleEffectType("nube_lluvia", "&8Nube de Lluvia", icon("WATER_BUCKET"),
@@ -159,7 +162,7 @@ public final class ParticleEffects {
                         double a = random() * TAU, r = random() * 0.7;
                         DRIP.spawn(cloud.clone().add(Math.cos(a) * r, -0.3, Math.sin(a) * r));
                     }
-                    // Salpicaduras en el suelo
+                    // Splashes on the ground.
                     if (tick % 4 == 0) {
                         double a = random() * TAU, r = random() * 0.8;
                         SPLASH.spawn(at.clone().add(Math.cos(a) * r, 0.05, Math.sin(a) * r));
@@ -179,7 +182,7 @@ public final class ParticleEffects {
                 }).interval(3);
     }
 
-    // ----------------------------------------------------------------- alas
+    // ---------------------------------------------------------------- wings
 
     public static ParticleEffectType alasDeAngel() {
         return wings("alas_angel", "&fAlas de Angel", Items.head(), Colors.hex("#FFFBE0"), false);
@@ -196,7 +199,7 @@ public final class ParticleEffects {
     private static ParticleEffectType wings(String id, String name, ItemStack icon,
                                             Color color, boolean rainbow) {
         return new ParticleEffectType(id, name, icon, (player, at, tick) -> {
-            // Batido suave y giro con el yaw para que siempre queden de espaldas
+            // Gentle beat, rotated by yaw so they always sit on the back.
             double flap = 1 + Math.sin(tick * 0.12) * 0.12;
             double yaw = Math.toRadians(-at.getYaw());
             DUST.color(rainbow ? Colors.rainbow(tick * 0.01) : color).size(0.9f).range(30)
@@ -204,7 +207,7 @@ public final class ParticleEffects {
         }).interval(2);
     }
 
-    // ----------------------------------------------------------------- amor
+    // ----------------------------------------------------------------- love
 
     public static ParticleEffectType enamorado() {
         return new ParticleEffectType("enamorado", "&dEnamorado", icon("RED_DYE", "INK_SACK"),
@@ -223,7 +226,7 @@ public final class ParticleEffects {
                                 SHAPE_HEART.rotateY(tick * 0.06))).interval(3);
     }
 
-    // ------------------------------------------------------------- magicos
+    // ---------------------------------------------------------------- magic
 
     public static ParticleEffectType encantado() {
         return new ParticleEffectType("encantado", "&5Encantado", icon("ENCHANTING_TABLE", "ENCHANTMENT_TABLE"),
@@ -253,8 +256,8 @@ public final class ParticleEffects {
     public static ParticleEffectType agujeroNegro() {
         return new ParticleEffectType("agujero_negro", "&8Agujero Negro", icon("COAL_BLOCK", "COAL"),
                 (player, at, tick) -> {
-                    // Espiral que se cierra: el radio depende de la fase de cada
-                    // particula, no del tick global, para que el flujo sea continuo.
+                    // Inward spiral. Radius depends on each particle's own phase rather
+                    // than the global tick, so the flow stays continuous.
                     for (int i = 0; i < 4; i++) {
                         double phase = ((tick * 2 + i * 15) % 60) / 60.0;
                         double r = 2.2 * (1 - phase);
@@ -276,11 +279,11 @@ public final class ParticleEffects {
                 }).interval(2);
     }
 
-    // -------------------------------------------------------------- fiesta
+    // ---------------------------------------------------------------- party
 
     public static ParticleEffectType notasMusicales() {
         return new ParticleEffectType("notas", "&aNotas Musicales", icon("JUKEBOX"),
-                // Quieto: la nota orbita a 0.6 de radio, 2.2 de altura.
+                // At rest: the note orbits at radius 0.6, height 2.2.
                 (player, at, tick) -> {
                     double angle = Math.toRadians(tick * 12);
                     NOTE.count(0).range(26).color(Colors.rainbow((tick % 24) / 24.0))
@@ -290,7 +293,7 @@ public final class ParticleEffects {
                         Sounds.NOTE_HARP.play(player, 0.3f, Sounds.pitchOf((int) (random() * 12)));
                     }
                 })
-                // Caminando: la nota sale a la altura del pecho, sin orbitar.
+                // Walking: the note appears at chest height without orbiting.
                 .moving((player, at, tick) -> NOTE.count(0).range(26)
                         .color(Colors.rainbow((tick % 24) / 24.0))
                         .spawn(at.clone().add(0, 0.6, 0)))
@@ -331,7 +334,7 @@ public final class ParticleEffects {
                                 SHAPE_STAR.rotateY(tick * 0.08))).interval(3);
     }
 
-    // ------------------------------------------------------------- oscuros
+    // ------------------------------------------------------------------ dark
 
     public static ParticleEffectType calavera() {
         return new ParticleEffectType("calavera", "&8Calavera", Items.head(),
@@ -361,7 +364,7 @@ public final class ParticleEffects {
                 }).interval(2);
     }
 
-    // ------------------------------------------------------------- rastros
+    // --------------------------------------------------------------- trails
 
     public static ParticleEffectType rastroColorido() {
         return new ParticleEffectType("rastro_colorido", "&b&lRastro Colorido", icon("LIGHT_BLUE_DYE", "INK_SACK"),
@@ -373,8 +376,8 @@ public final class ParticleEffects {
     public static ParticleEffectType tornado() {
         return new ParticleEffectType("tornado", "&7Tornado", icon("GRAY_WOOL", "WOOL"),
                 (player, at, tick) -> {
-                    // Mientras mas arriba, mas ancho y mas rapido: sin eso se ve
-                    // como un cilindro girando, no como un tornado.
+                    // Wider and faster with height; without that it reads as a
+                    // spinning cylinder rather than a tornado.
                     for (int layer = 0; layer < 8; layer++) {
                         double t = layer / 8.0;
                         double r = 0.25 + t * 1.5;
@@ -397,7 +400,7 @@ public final class ParticleEffects {
     public static ParticleEffectType rayoElectrico() {
         return new ParticleEffectType("electrico", "&e&lElectrico", icon("LIGHTNING_ROD", "IRON_INGOT"),
                 (player, at, tick) -> {
-                    // Cada frame es un rayo distinto; por eso se ve "vivo".
+                    // A different bolt each frame, which is what makes it flicker.
                     double a = random() * TAU;
                     Vector to = new Vector(Math.cos(a) * 1.3, 2.2, Math.sin(a) * 1.3);
                     DUST.color(Colors.hex("#FFF37A")).size(0.8f).range(28)
@@ -406,9 +409,11 @@ public final class ParticleEffects {
                 }).interval(4);
     }
 
-    // -------------------------------------------------------------- helpers
+    // --------------------------------------------------------------- helpers
 
-    /** Registra todo el catalogo. */
+    /**
+     * Registers every effect in this catalogue.
+     */
     public static void registerDefaults() {
         CosmeticRegistry.registerAll(
                 auraDeFuego(), anillosDeLlama(), llamaDemoniaca(),

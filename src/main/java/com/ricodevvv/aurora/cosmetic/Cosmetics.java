@@ -11,18 +11,21 @@ import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 
 /**
- * Catalogo de arranque. Todos los materiales van por Items.material(...) con
- * alias, porque el flattening de 1.13 renombro casi todo (WOOL:14 ->
- * RED_WOOL, SKULL_ITEM -> PLAYER_HEAD, etc).
+ * A starter catalogue of balloons and pets.
  *
- * Llama registerDefaults() en tu onEnable, o copia estos y arma los tuyos.
+ * <p>Materials are resolved through {@code Items.material(...)} with aliases,
+ * because the 1.13 flattening renamed nearly everything: {@code WOOL:14} became
+ * {@code RED_WOOL}, {@code SKULL_ITEM} became {@code PLAYER_HEAD}, and so on.
+ *
+ * <p>Call {@link #registerDefaults()} from {@code onEnable}, or copy these as
+ * templates for your own.
  */
 public final class Cosmetics {
 
     private Cosmetics() {
     }
 
-    // --------------------------------------------------------------- globos
+    // -------------------------------------------------------------- balloons
 
     public static BalloonType redBalloon() {
         return new BalloonType("rojo", "&cGlobo Rojo", wool((byte) 14, "RED_WOOL"))
@@ -36,7 +39,9 @@ public final class Cosmetics {
                 .ambient(Particles.dust(Colors.hex("#3050E0")).size(0.7f), 8);
     }
 
-    /** Globo arcoiris: el rastro cicla de color con la paleta VOID. */
+    /**
+     * @return a rainbow balloon with a colour-cycling trail
+     */
     public static BalloonType rainbowBalloon() {
         return new BalloonType("arcoiris", "&d&lGlobo Arcoiris", wool((byte) 2, "MAGENTA_WOOL"))
                 .popColor(Colors.hex("#FF60FF"))
@@ -44,7 +49,9 @@ public final class Cosmetics {
                 .leashLength(3.0);
     }
 
-    /** Nube: en vez de un globo, un bloque de lana blanca soltando vapor. */
+    /**
+     * @return a small cloud trailing vapour instead of a balloon
+     */
     public static BalloonType cloudBalloon() {
         return new BalloonType("nube", "&fNubecita", wool((byte) 0, "WHITE_WOOL"))
                 .height(2.6)
@@ -52,7 +59,9 @@ public final class Cosmetics {
                 .ambient(Particles.of(XParticle.CLOUD).count(2).offset(0.15).speed(0.01), 4);
     }
 
-    /** Globo de calavera, con cabeza en vez de lana. */
+    /**
+     * @return a skull balloon, using a head instead of wool
+     */
     public static BalloonType skullBalloon() {
         return new BalloonType("calavera", "&8Globo Calavera", Items.head())
                 .popColor(Colors.hex("#404040"))
@@ -60,9 +69,12 @@ public final class Cosmetics {
     }
 
     /**
-     * Version sin correa real: la cuerda se dibuja con particulas.
-     * Util si no quieres mobs extra en el mundo (anticheat, contadores de
-     * entidades, o servidores donde el ancla se te desincroniza).
+     * A balloon whose tether is drawn with particles rather than a real lead.
+     *
+     * <p>Useful when extra mobs in the world are a problem: anti-cheats, entity
+     * counters, or setups where the anchor drifts out of sync.
+     *
+     * @return the smoke balloon
      */
     public static BalloonType particleLeashBalloon() {
         return new BalloonType("humo", "&7Globo de Humo", wool((byte) 8, "LIGHT_GRAY_WOOL"))
@@ -70,9 +82,12 @@ public final class Cosmetics {
                 .popColor(Colors.hex("#9A9A9A"));
     }
 
-    // ------------------------------------------------------------ mascotas
+    // ------------------------------------------------------------------ pets
 
-    /** Mini pet de verdad en 1.8: cabeza flotante, chiquita en cualquier version. */
+    /**
+     * @return a floating head pet, which is the only rendering that looks
+     * genuinely small on 1.8 as well as on 1.21
+     */
     public static PetType miniCreeper() {
         return new PetType("creeper", "&aMini Creeper", head("creeper"))
                 .head(head("creeper"))
@@ -88,7 +103,9 @@ public final class Cosmetics {
                 .speed(0.28);
     }
 
-    /** Mascota clasica: lobo bebe real. En 1.8 "bebe" es lo mas chico posible. */
+    /**
+     * @return a real baby wolf; on 1.8 "baby" is as small as an entity gets
+     */
     public static PetType puppy() {
         return new PetType("perrito", "&fPerrito", new ItemStack(Material.getMaterial("BONE")))
                 .mob(Entities.type("WOLF"))
@@ -105,7 +122,9 @@ public final class Cosmetics {
                 .speed(0.3);
     }
 
-    /** Mascota flotante con estela de fuego. */
+    /**
+     * @return a hovering pet trailing flames
+     */
     public static PetType emberSprite() {
         return new PetType("brasa", "&6Brasa", new ItemStack(Items.material("BLAZE_POWDER", "FIRE_CHARGE")))
                 .head(new ItemStack(Items.material("MAGMA_BLOCK", "NETHERRACK")))
@@ -117,7 +136,10 @@ public final class Cosmetics {
 
     // --------------------------------------------------------------- helpers
 
-    /** Registra todo el catalogo de arranque (globos, mascotas y efectos). */
+    /**
+     * Registers the whole starter catalogue: balloons, pets and particle
+     * effects.
+     */
     public static void registerDefaults() {
         com.ricodevvv.aurora.cosmetic.particle.ParticleEffects.registerDefaults();
         CosmeticRegistry.registerAll(
@@ -126,7 +148,13 @@ public final class Cosmetics {
                 miniCreeper(), miniZombie(), puppy(), chick(), emberSprite());
     }
 
-    /** Lana por data value en 1.8, o por nombre plano en 1.13+. */
+    /**
+     * Resolves coloured wool on either side of the flattening.
+     *
+     * @param data     legacy data value used before 1.13
+     * @param flatName flattened material name used from 1.13
+     * @return the wool item
+     */
     @SuppressWarnings("deprecation")
     private static ItemStack wool(byte data, String flatName) {
         Material flat = Material.getMaterial(flatName);
