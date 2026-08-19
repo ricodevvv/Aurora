@@ -376,6 +376,24 @@ public class ParticleBuilder implements Cloneable {
     }
 
     /**
+     * Restricts the particle to an audience the caller already resolved,
+     * keeping the list by reference instead of copying it.
+     *
+     * <p>This is the hot path the effect pipeline uses: one audience is
+     * resolved per effect frame and handed to every builder that frame. The
+     * list must not be modified afterwards, which is why the copying
+     * {@link #viewers(Collection)} stays the public default.
+     *
+     * @param audience players who should see it, or {@code null} for
+     *                 range-based selection
+     * @return this builder
+     */
+    public ParticleBuilder audience(List<Player> audience) {
+        this.viewers = audience;
+        return this;
+    }
+
+    /**
      * Restricts the particle to a single player.
      *
      * @param player the only player who should see it
