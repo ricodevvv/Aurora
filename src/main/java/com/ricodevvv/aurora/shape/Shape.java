@@ -122,4 +122,74 @@ public interface Shape {
         }
         return of(transformed);
     }
+
+    /**
+     * Combines this shape with another, producing one point list.
+     *
+     * <p>Layered effects live on this: a bright core and a dim outer shell
+     * drawn as one shape resolve their audience once instead of twice.
+     *
+     * @param other shape to append
+     * @return the combined shape
+     */
+    default Shape plus(Shape other) {
+        List<Vector> combined = new ArrayList<>(points().size() + other.points().size());
+        combined.addAll(points());
+        combined.addAll(other.points());
+        return of(combined);
+    }
+
+    /**
+     * Displaces every point by a small random amount.
+     *
+     * <p>Geometry drawn exactly is what makes a particle effect look like a
+     * spreadsheet. A jitter of a few centimetres is enough to read as smoke,
+     * fire or magic rather than as a wireframe.
+     *
+     * @param amount maximum displacement per axis, in blocks
+     * @return a roughened copy
+     */
+    default Shape jitter(double amount) {
+        java.util.concurrent.ThreadLocalRandom random =
+                java.util.concurrent.ThreadLocalRandom.current();
+        return transform(vector -> vector.add(new Vector(
+                (random.nextDouble() * 2 - 1) * amount,
+                (random.nextDouble() * 2 - 1) * amount,
+                (random.nextDouble() * 2 - 1) * amount)));
+    }
+
+    /**
+     * Keeps only part of the shape, measured from its first point.
+     *
+     * <p>Feeding this a rising value is how a shape draws itself on: a rune
+     * circle that completes over half a second reads as a summon, the same
+     * circle appearing whole reads as a texture.
+     *
+     * @param fraction how much of the shape to keep, in {@code 0..1}
+     * @return the partial shape
+     */
+    default Shape take(double fraction) {
+        List<Vector> all = points();
+        int keep = (int) Math.round(all.size() * Math.max(0, Math.min(1, fraction)));
+        if (keep >= all.size()) return this;
+        return of(new ArrayList<>(all.subList(0, Math.max(0, keep))));
+    }
+
+    /**
+     * Orients a shape built in the XZ or XY plane to sit on a player's back,
+     * without needing their {@link Location}.
+     *
+     * @param yawDegrees the wearer's yaw, in degrees
+     * @return an oriented copy
+     */
+    default Shape facingYaw(double yawDegrees) {
+        return rotateY(Math.toRadians(-yawDegrees));
+    }
+
+    /**
+     * @return a shape with no points, useful as a neutral element
+     */
+    static Shape empty() {
+        return of(java.util.Collections.emptyList());
+    }
 }

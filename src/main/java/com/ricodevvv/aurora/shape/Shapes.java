@@ -385,4 +385,234 @@ public final class Shapes {
         }
         return Shape.of(list);
     }
+
+    // ------------------------------------------------------- premium shapes
+
+    /**
+     * A sphere traced as one continuous spiral from pole to pole.
+     *
+     * <p>Unlike {@link #sphere(double, int)}, whose points are in scattered
+     * order, this one is generated in a single sweep. That is what makes it
+     * usable with a {@link com.ricodevvv.aurora.util.ColorRamp}: the ramp runs
+     * from the bottom of the orb to the top instead of speckling it.
+     *
+     * @param radius sphere radius
+     * @param turns  how many times the spiral wraps around
+     * @param points number of points
+     * @return the orb
+     */
+    public static Shape spiralSphere(double radius, double turns, int points) {
+        List<Vector> list = new ArrayList<>(points);
+        for (int i = 0; i < points; i++) {
+            double t = i / (double) Math.max(1, points - 1);
+            double y = 1 - 2 * t;
+            double r = Math.sqrt(Math.max(0, 1 - y * y));
+            double angle = TAU * turns * t;
+            list.add(new Vector(Math.cos(angle) * r * radius, y * radius, Math.sin(angle) * r * radius));
+        }
+        return Shape.of(list);
+    }
+
+    /**
+     * Several rings sharing a centre, each tilted a little further than the
+     * last, like a gyroscope.
+     *
+     * @param radius        ring radius
+     * @param rings         how many rings
+     * @param pointsPerRing points in each ring
+     * @return the orbit rings
+     */
+    public static Shape orbit(double radius, int rings, int pointsPerRing) {
+        List<Vector> list = new ArrayList<>(rings * pointsPerRing);
+        for (int i = 0; i < rings; i++) {
+            double tilt = Math.PI * i / Math.max(1, rings);
+            list.addAll(circle(radius, pointsPerRing).rotateX(tilt).rotateY(tilt * 0.5).points());
+        }
+        return Shape.of(list);
+    }
+
+    /**
+     * Flat spiral arms sweeping out from a centre, as a galaxy seen from above.
+     *
+     * @param radius outer radius
+     * @param arms   how many arms
+     * @param points points per arm
+     * @return the galaxy
+     */
+    public static Shape galaxy(double radius, int arms, int points) {
+        List<Vector> list = new ArrayList<>(arms * points);
+        for (int arm = 0; arm < arms; arm++) {
+            double offset = TAU * arm / Math.max(1, arms);
+            for (int i = 0; i < points; i++) {
+                double t = i / (double) points;
+                // Logarithmic rather than linear, so the arms sweep instead of
+                // radiating straight out.
+                double angle = offset + Math.log(1 + t * 9) * 1.6;
+                double r = radius * t;
+                list.add(new Vector(Math.cos(angle) * r, 0, Math.sin(angle) * r));
+            }
+        }
+        return Shape.of(list);
+    }
+
+    /**
+     * A ring of upward spikes, for crowns and rank halos.
+     *
+     * @param radius     ring radius
+     * @param spikes     how many spikes
+     * @param height     spike height
+     * @param ringPoints points in the ring itself
+     * @return the crown
+     */
+    public static Shape crown(double radius, int spikes, double height, int ringPoints) {
+        List<Vector> list = new ArrayList<>(circle(radius, ringPoints).points());
+        for (int i = 0; i < spikes; i++) {
+            double angle = TAU * i / Math.max(1, spikes);
+            double x = Math.cos(angle) * radius;
+            double z = Math.sin(angle) * radius;
+            for (int p = 1; p <= 4; p++) {
+                double t = p / 4.0;
+                list.add(new Vector(x * (1 - t * 0.25), height * t, z * (1 - t * 0.25)));
+            }
+        }
+        return Shape.of(list);
+    }
+
+    /**
+     * A flower drawn as overlapping petal arcs, flat in the XZ plane.
+     *
+     * @param petals how many petals
+     * @param radius petal length
+     * @param points points per petal
+     * @return the flower
+     */
+    public static Shape flower(int petals, double radius, int points) {
+        List<Vector> list = new ArrayList<>(petals * points);
+        for (int petal = 0; petal < petals; petal++) {
+            double centre = TAU * petal / Math.max(1, petals);
+            for (int i = 0; i < points; i++) {
+                double t = i / (double) points;
+                double angle = centre + (t - 0.5) * (TAU / petals) * 1.6;
+                double r = radius * Math.sin(Math.PI * t);
+                list.add(new Vector(Math.cos(angle) * r, 0, Math.sin(angle) * r));
+            }
+        }
+        return Shape.of(list);
+    }
+
+    /**
+     * A crescent moon in the XY plane: an arc with a second arc bitten out of it.
+     *
+     * @param radius outer radius
+     * @param points number of points
+     * @return the crescent
+     */
+    public static Shape crescent(double radius, int points) {
+        List<Vector> list = new ArrayList<>(points);
+        int half = Math.max(2, points / 2);
+        for (int i = 0; i < half; i++) {
+            double angle = Math.PI * i / (half - 1) - Math.PI / 2;
+            list.add(new Vector(Math.cos(angle) * radius, Math.sin(angle) * radius, 0));
+        }
+        for (int i = 0; i < half; i++) {
+            double angle = Math.PI * i / (half - 1) - Math.PI / 2;
+            list.add(new Vector(Math.cos(angle) * radius * 0.55 + radius * 0.35,
+                    Math.sin(angle) * radius * 0.92, 0));
+        }
+        return Shape.of(list);
+    }
+
+    /**
+     * Bat or dragon wings: a swept bone with a membrane hanging between each
+     * pair of fingers.
+     *
+     * <p>Where {@link #wings(double, int, int)} draws separate feathers, this
+     * draws a continuous surface, which is what distinguishes a demon from an
+     * angel at twenty blocks.
+     *
+     * @param size    wingspan
+     * @param fingers how many bones per wing
+     * @param points  points along each bone
+     * @return the wings
+     */
+    public static Shape dragonWings(double size, int fingers, int points) {
+        List<Vector> list = new ArrayList<>(fingers * points * 2);
+        for (int finger = 0; finger < fingers; finger++) {
+            double spread = Math.toRadians(10 + finger * (70.0 / Math.max(1, fingers - 1)));
+            double length = size * (1 - 0.15 * finger / Math.max(1, fingers - 1.0));
+            for (int p = 1; p <= points; p++) {
+                double t = p / (double) points;
+                // The membrane sags between bones; the sag grows towards the tip.
+                double sag = Math.sin(Math.PI * t) * size * 0.22 * (finger / (double) fingers);
+                double x = Math.cos(spread) * length * t;
+                double y = Math.sin(spread) * length * t - sag;
+                list.add(new Vector(x, y, 0));
+                list.add(new Vector(-x, y, 0));
+            }
+        }
+        return Shape.of(list);
+    }
+
+    /**
+     * Butterfly wings, from the polar butterfly curve, in the XY plane.
+     *
+     * @param size   wingspan
+     * @param points number of points
+     * @return the wings
+     */
+    public static Shape butterflyWings(double size, int points) {
+        List<Vector> list = new ArrayList<>(points * 2);
+        for (int i = 0; i < points; i++) {
+            double t = TAU * i / points;
+            double r = Math.exp(Math.cos(t)) - 2 * Math.cos(4 * t) + Math.pow(Math.sin(t / 12), 5);
+            double x = Math.sin(t) * r * size / 4;
+            double y = Math.cos(t) * r * size / 4;
+            list.add(new Vector(x, y, 0));
+            list.add(new Vector(-x, y, 0));
+        }
+        return Shape.of(list);
+    }
+
+    /**
+     * Hollow cone standing on its point, for funnels and containment fields.
+     *
+     * @param radius radius at the top
+     * @param height total height
+     * @param rings  how many rings stack up the cone
+     * @param points points per ring
+     * @return the cone
+     */
+    public static Shape cone(double radius, double height, int rings, int points) {
+        List<Vector> list = new ArrayList<>(rings * points);
+        for (int ring = 0; ring < rings; ring++) {
+            double t = ring / (double) Math.max(1, rings - 1);
+            double r = radius * t;
+            double y = height * t;
+            for (int i = 0; i < points; i++) {
+                double angle = TAU * i / points + t * 1.2;
+                list.add(new Vector(Math.cos(angle) * r, y, Math.sin(angle) * r));
+            }
+        }
+        return Shape.of(list);
+    }
+
+    /**
+     * A column of points scattered in a cylinder, for pillars of light and
+     * rising auras.
+     *
+     * @param radius cylinder radius
+     * @param height cylinder height
+     * @param points number of points
+     * @return the column
+     */
+    public static Shape column(double radius, double height, int points) {
+        List<Vector> list = new ArrayList<>(points);
+        java.util.Random random = new java.util.Random();
+        for (int i = 0; i < points; i++) {
+            double angle = random.nextDouble() * TAU;
+            double r = radius * Math.sqrt(random.nextDouble());
+            list.add(new Vector(Math.cos(angle) * r, random.nextDouble() * height, Math.sin(angle) * r));
+        }
+        return Shape.of(list);
+    }
 }

@@ -189,9 +189,12 @@ public class PacketArmorStandModel implements Model {
                         location.getX(), location.getY(), location.getZ(),
                         location.getYaw(), location.getPitch());
 
+        // PacketEvents 2.9 takes the uuid and the velocity directly here; the
+        // Optional-wrapped overload is the one that works in world coordinates
+        // rather than in a protocol Location.
         send(player, new WrapperPlayServerSpawnEntity(
-                entityId, Optional.of(uuid), EntityTypes.ARMOR_STAND,
-                at, location.getYaw(), 0, Optional.empty()));
+                entityId, uuid, EntityTypes.ARMOR_STAND,
+                at, location.getYaw(), 0, new Vector3d(0, 0, 0)));
 
         send(player, metadataPacket());
         if (helmet != null) send(player, equipmentPacket());
