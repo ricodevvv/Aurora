@@ -65,21 +65,20 @@
             <artifactId>spigot-api</artifactId>
             <version>1.8.8-R0.1-SNAPSHOT</version>
             <scope>provided</scope>
+            <exclusions>
+                <!--
+                    bungeecord-chat 1.8-SNAPSHOT is no longer resolvable from any
+                    repository, so leaving it in makes the build fail before it
+                    compiles a single class. Aurora never touches BaseComponent.
+                -->
+                <exclusion>
+                    <groupId>net.md-5</groupId>
+                    <artifactId>bungeecord-chat</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
 <!--
-            XSeries drives the particle layer. It is a hard dependency and must
-            be shaded: it is a utility library, so two plugins bundling
-            different versions unshaded will break each other.
-        -->
-        <dependency>
-            <groupId>com.github.cryptomorin</groupId>
-            <artifactId>XSeries</artifactId>
-            <version>13.7.1</version>
-            <scope>compile</scope>
-        </dependency>
-
-        <!--
             PacketEvents is OPTIONAL. Si no esta en runtime, Aurora cae solo al
             backend de entidades reales (ver PacketSupport). Por eso va como
             If it is missing at runtime Aurora falls back to real Bukkit

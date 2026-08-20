@@ -1,7 +1,7 @@
 package com.ricodevvv.aurora.animation;
 
 import com.ricodevvv.aurora.particle.ParticleBuilder;
-import com.cryptomorin.xseries.particles.XParticle;
+import com.ricodevvv.aurora.particle.ParticleType;
 import com.ricodevvv.aurora.shape.Curves;
 import com.ricodevvv.aurora.shape.Glyphs;
 import com.ricodevvv.aurora.shape.Shape;
@@ -396,7 +396,7 @@ public final class Animations {
      */
     public static Animation blockExplosion(Location center, Material material,
                                            double radius, int ticks, int points) {
-        ParticleBuilder particle = new ParticleBuilder(XParticle.BLOCK).material(material);
+        ParticleBuilder particle = new ParticleBuilder(ParticleType.BLOCK).material(material);
         return new ShapeAnimation(center, Shapes.cloud(1, points), particle)
                 .scaleOverTime(0.2, radius, Easing.EASE_OUT_CUBIC)
                 .duration(ticks);

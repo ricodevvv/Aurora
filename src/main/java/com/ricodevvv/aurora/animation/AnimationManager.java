@@ -1,5 +1,7 @@
 package com.ricodevvv.aurora.animation;
 
+import com.ricodevvv.aurora.particle.ViewerCache;
+import com.ricodevvv.aurora.util.ServerLoad;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
@@ -60,13 +62,23 @@ public final class AnimationManager {
     }
 
     private void start() {
+        ServerLoad.reset();
         task = Bukkit.getScheduler().runTaskTimer(plugin, this::tickAll, 1L, 1L);
     }
 
     /**
      * Ticks every active animation, then applies buffered registrations.
+     *
+     * <p>The tick signal is also where Aurora samples how well the server is
+     * keeping up and drops the per-tick viewer snapshot. Both live here rather
+     * than in a task of their own: this loop already runs every tick, and the
+     * particle layer needs both to be refreshed exactly once before any effect
+     * draws.
      */
     private void tickAll() {
+        ServerLoad.sample();
+        ViewerCache.invalidate();
+
         ticking = true;
         for (int i = 0; i < active.size(); i++) {
             active.get(i).tick();
@@ -114,6 +126,8 @@ public final class AnimationManager {
         pendingAdd.clear();
         pendingRemove.clear();
         if (task != null) task.cancel();
+        ViewerCache.invalidate();
+        ServerLoad.reset();
         instance = null;
     }
 

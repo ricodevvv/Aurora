@@ -19,7 +19,7 @@ import com.ricodevvv.aurora.hologram.HeadLine;
 import com.ricodevvv.aurora.hologram.Hologram;
 import com.ricodevvv.aurora.hologram.HologramAnimations;
 import com.ricodevvv.aurora.hologram.TextLine;
-import com.cryptomorin.xseries.particles.XParticle;
+import com.ricodevvv.aurora.particle.ParticleType;
 import com.ricodevvv.aurora.particle.Particles;
 import com.ricodevvv.aurora.shape.Shapes;
 import com.ricodevvv.aurora.util.Easing;
@@ -80,10 +80,10 @@ public class AuroraDemo extends JavaPlugin {
             }
             case "onda": {
                 // Expanding shockwave, in the style of a kill effect.
-                Animations.ringWave(location, Particles.of(XParticle.FLAME).speed(0.01), 0.5, 6, 25, 40)
+                Animations.ringWave(location, Particles.of(ParticleType.FLAME).speed(0.01), 0.5, 6, 25, 40)
                         .start();
                 Animations.burst(location.clone().add(0, 1, 0),
-                        Particles.of(XParticle.LARGE_SMOKE).count(2).offset(0.05), 3, 15, 60)
+                        Particles.of(ParticleType.LARGE_SMOKE).count(2).offset(0.05), 3, 15, 60)
                         .start();
                 break;
             }
@@ -96,7 +96,7 @@ public class AuroraDemo extends JavaPlugin {
             case "haz": {
                 Location target = player.getTargetBlock((java.util.Set<org.bukkit.Material>) null, 40).getLocation();
                 Animations.beam(location.clone().add(0, 1.4, 0), target,
-                                Particles.of(XParticle.END_ROD), 2.5, 0.2)
+                                Particles.of(ParticleType.END_ROD), 2.5, 0.2)
                         .start();
                 break;
             }
@@ -157,7 +157,7 @@ public class AuroraDemo extends JavaPlugin {
                 break;
             }
             case "tornado": {
-                Animations.tornado(location, Particles.of(XParticle.LARGE_SMOKE).speed(0.01),
+                Animations.tornado(location, Particles.of(ParticleType.LARGE_SMOKE).speed(0.01),
                                 2.5, 6, 12)
                         .duration(300)
                         .start();
@@ -203,7 +203,7 @@ public class AuroraDemo extends JavaPlugin {
                 break;
             }
             case "gradiente": {
-                Animations.gradientTrail(player, Particles.of(XParticle.DUST), Colors.FIRE, 40, 1.0)
+                Animations.gradientTrail(player, Particles.of(ParticleType.DUST), Colors.FIRE, 40, 1.0)
                         .duration(400)
                         .start();
                 break;
