@@ -3,6 +3,7 @@ package com.ricodevvv.aurora;
 import com.ricodevvv.aurora.animation.AnimationManager;
 import com.ricodevvv.aurora.cosmetic.CosmeticManager;
 import com.ricodevvv.aurora.hologram.Hologram;
+import com.ricodevvv.aurora.particle.Particles;
 import com.ricodevvv.aurora.util.ServerVersion;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
@@ -36,7 +37,11 @@ public final class Aurora {
         if (plugin != null) return;
         plugin = owner;
         AnimationManager.init(owner);
-        Bukkit.getLogger().info("[Aurora] Ready on " + ServerVersion.asString() + ".");
+        // Resolving the particle backend here rather than lazily means a server
+        // whose internals Aurora cannot reach says so at enable time, next to
+        // everything else that logs at startup.
+        Bukkit.getLogger().info("[Aurora] Ready on " + ServerVersion.asString()
+                + ", particles via " + Particles.backend() + ".");
     }
 
     /**

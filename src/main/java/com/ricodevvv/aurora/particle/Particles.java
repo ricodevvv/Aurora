@@ -23,6 +23,20 @@ public final class Particles {
     }
 
     /**
+     * How particles are being delivered on this server, and whether that route
+     * actually resolved.
+     *
+     * <p>Logged by {@link com.ricodevvv.aurora.Aurora#init} so the answer to
+     * "why do I see nothing" is in the console from the first second, rather
+     * than being a silence that has to be bisected.
+     *
+     * @return a line such as {@code 1.8 packets on 1.8.8 (ready)}
+     */
+    public static String backend() {
+        return ParticleSender.get().describe();
+    }
+
+    /**
      * Starts a builder for any particle.
      *
      * @param particle particle to spawn

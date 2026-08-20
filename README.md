@@ -286,7 +286,19 @@ mvn clean package        # jar, sources jar, javadoc jar
 mvn javadoc:javadoc      # target/reports/apidocs
 ```
 
-Java 17.
+Builds with any JDK from 8 to 21, and **emits Java 8 bytecode**. That is not
+negotiable for a library that claims 1.8: a 1.8.8 server runs on a Java 8 JVM, and a
+Java 8 JVM cannot load a class file built for 17 — it throws
+`UnsupportedClassVersionError` before a single line of Aurora runs, which from the
+outside looks exactly like "the particles do nothing". Check a build with:
+
+```bash
+javap -verbose -cp target/classes com.ricodevvv.aurora.Aurora | head -3
+#   major version: 52      <- Java 8. 61 would be Java 17, and would not load on 1.8.
+```
+
+If you shade Aurora into your own plugin, your plugin has to target Java 8 too, or the
+shaded classes are the ones that fail.
 
 ## Status
 
@@ -297,10 +309,14 @@ check first:
   indices are verified against the protocol documentation and the spawn wrapper matches
   2.9, but wrapper constructor signatures move between releases; check them against your
   version.
-- **The 1.8 particle path is packet code and needs a real 1.8 server to confirm.** The
-  packet signature and the colour-in-offsets encoding are the documented ones, and the
-  name table, fallback chains and encodings are covered by an offline check, but no
-  packet has been put in front of a 1.8 client.
+- **The 1.8 particle path is packet code and needs a real 1.8 client to confirm.** The
+  whole path — version detection, `EnumParticle` resolution, packet construction,
+  `playerConnection` lookup and delivery — is exercised end to end against a stand-in
+  1.8.8 server, including a full cosmetic equipped and ticked for two seconds, but no
+  packet has yet been put in front of a real 1.8 client.
+- **Aurora says so when it cannot work.** If the particle backend fails to resolve
+  something, it logs which member is missing at enable time rather than drawing
+  nothing in silence. The startup line reports the backend either way.
 - Head offsets (`HeadLine.yAdjust`) and balloon `height` / `leashLength` are tuned by eye.
 - `Entities.disableAI` falls back to reflection on 1.8; a fork with renamed fields will
   skip it. Not fatal, since Aurora teleports its entities every tick anyway.
