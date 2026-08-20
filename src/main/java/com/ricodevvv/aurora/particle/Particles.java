@@ -1,6 +1,5 @@
 package com.ricodevvv.aurora.particle;
 
-import com.cryptomorin.xseries.particles.XParticle;
 import org.bukkit.Color;
 
 /**
@@ -10,12 +9,13 @@ import org.bukkit.Color;
  * build once and keep it as a field rather than calling these every tick.
  *
  * <p>The presets below cover the particles a cosmetic effect actually reaches
- * for, and each one falls back to something that exists on older servers:
- * {@code SOUL_FIRE_FLAME} became available in 1.16 and {@code END_ROD} in 1.9,
- * so asking for either on 1.8 yields flame and firework sparks instead of a
- * silent nothing.
+ * for. None of them can fail on an older server: {@link ParticleType} carries a
+ * fallback for everything added after 1.8, so asking for a soul flame on 1.8
+ * yields a flame and asking for an end rod yields firework sparks, rather than
+ * a silent nothing or an exception.
  *
  * @see ParticleBuilder
+ * @see ParticleType
  */
 public final class Particles {
 
@@ -28,20 +28,8 @@ public final class Particles {
      * @param particle particle to spawn
      * @return a new builder
      */
-    public static ParticleBuilder of(XParticle particle) {
+    public static ParticleBuilder of(ParticleType particle) {
         return new ParticleBuilder(particle);
-    }
-
-    /**
-     * Starts a builder for the first of several particles that the running
-     * server supports.
-     *
-     * @param preferred    the particle you want
-     * @param alternatives fallbacks, most preferred first
-     * @return a new builder for whichever exists
-     */
-    public static ParticleBuilder of(XParticle preferred, XParticle... alternatives) {
-        return new ParticleBuilder(supported(preferred, alternatives));
     }
 
     /**
@@ -51,7 +39,7 @@ public final class Particles {
      * @return a new builder
      */
     public static ParticleBuilder dust(Color color) {
-        return of(XParticle.DUST).color(color);
+        return of(ParticleType.DUST).color(color);
     }
 
     /**
@@ -63,7 +51,7 @@ public final class Particles {
      * @return a new builder
      */
     public static ParticleBuilder dust(int r, int g, int b) {
-        return of(XParticle.DUST).color(r, g, b);
+        return of(ParticleType.DUST).color(r, g, b);
     }
 
     /**
@@ -85,21 +73,21 @@ public final class Particles {
      * @return a builder for flame particles
      */
     public static ParticleBuilder flame() {
-        return of(XParticle.FLAME);
+        return of(ParticleType.FLAME);
     }
 
     /**
      * @return a builder for the small blue soul flame, falling back to flame
      */
     public static ParticleBuilder soulFlame() {
-        return of(XParticle.SOUL_FIRE_FLAME, XParticle.FLAME);
+        return of(ParticleType.SOUL_FIRE_FLAME);
     }
 
     /**
      * @return a builder for critical hit particles
      */
     public static ParticleBuilder crit() {
-        return of(XParticle.CRIT);
+        return of(ParticleType.CRIT);
     }
 
     /**
@@ -112,72 +100,56 @@ public final class Particles {
      * @return a builder for end rod particles, falling back to firework sparks
      */
     public static ParticleBuilder endRod() {
-        return of(XParticle.END_ROD, XParticle.FIREWORK);
+        return of(ParticleType.END_ROD);
     }
 
     /**
      * @return a builder for firework sparks
      */
     public static ParticleBuilder spark() {
-        return of(XParticle.FIREWORK);
+        return of(ParticleType.FIREWORK);
     }
 
     /**
      * @return a builder for the electric spark, falling back to critical hits
      */
     public static ParticleBuilder electric() {
-        return of(XParticle.ELECTRIC_SPARK, XParticle.CRIT);
+        return of(ParticleType.ELECTRIC_SPARK);
     }
 
     /**
-     * @return a builder for snowflakes, falling back to white dust
+     * @return a builder for snowflakes, falling back to cloud puffs
      */
     public static ParticleBuilder snowflake() {
-        return of(XParticle.SNOWFLAKE, XParticle.CLOUD);
+        return of(ParticleType.SNOWFLAKE);
     }
 
     /**
-     * @return a builder for the totem's spinning green sparkles, falling back
-     * to happy villager particles
+     * @return a builder for the totem's spinning sparkles, falling back to
+     * happy villager particles
      */
     public static ParticleBuilder totem() {
-        return of(XParticle.TOTEM_OF_UNDYING, XParticle.HAPPY_VILLAGER);
+        return of(ParticleType.TOTEM_OF_UNDYING);
     }
 
     /**
      * @return a builder for soul wisps, falling back to large smoke
      */
     public static ParticleBuilder soul() {
-        return of(XParticle.SOUL, XParticle.LARGE_SMOKE);
+        return of(ParticleType.SOUL);
     }
 
     /**
-     * @return a builder for cherry blossom petals, falling back to pink dust
+     * @return a builder for cherry blossom petals, falling back to dust
      */
     public static ParticleBuilder petal() {
-        return of(XParticle.CHERRY_LEAVES, XParticle.FALLING_DUST, XParticle.DUST);
+        return of(ParticleType.CHERRY_LEAVES);
     }
 
     /**
      * @return a builder for the enchanting table's glyphs
      */
     public static ParticleBuilder enchant() {
-        return of(XParticle.ENCHANT);
-    }
-
-    /**
-     * Picks the first particle the running server actually supports.
-     *
-     * @param preferred    the particle you want
-     * @param alternatives fallbacks, most preferred first
-     * @return the first supported particle, or the preferred one if the check
-     * itself is unavailable
-     */
-    private static XParticle supported(XParticle preferred, XParticle... alternatives) {
-        if (ParticleCompat.supported(preferred)) return preferred;
-        for (XParticle alternative : alternatives) {
-            if (ParticleCompat.supported(alternative)) return alternative;
-        }
-        return preferred;
+        return of(ParticleType.ENCHANT);
     }
 }

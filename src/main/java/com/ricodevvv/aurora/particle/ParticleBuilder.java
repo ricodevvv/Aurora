@@ -1,7 +1,5 @@
 package com.ricodevvv.aurora.particle;
 
-import com.cryptomorin.xseries.particles.ParticleDisplay;
-import com.cryptomorin.xseries.particles.XParticle;
 import com.ricodevvv.aurora.shape.Shape;
 import com.ricodevvv.aurora.util.ColorRamp;
 import org.bukkit.Color;
@@ -18,14 +16,14 @@ import java.util.List;
 /**
  * Fluent builder for spawning particles.
  *
- * <p>This is a thin layer over XSeries' {@link ParticleDisplay}. Aurora used to
- * ship two hand-rolled reflection backends (one packet-based for 1.8, one
- * {@code Player#spawnParticle}-based for 1.9+), which meant owning every
- * cross-version quirk by hand: the 1.20.5 enum rename, dust options, block and
- * item data, and the colour-in-offsets trick. XSeries already solves all of
- * that and is actively maintained, so Aurora delegates instead of competing.
+ * <p>Everything version-specific lives below it: {@link ParticleType} resolves
+ * what the running server calls each particle, {@link ParticleData} shapes the
+ * colour or block payload the way that version wants it, and
+ * {@link ParticleSender} delivers it — through {@code Player#spawnParticle} on
+ * 1.9 and later, and through a hand-built packet on 1.8, which has no particle
+ * API at all.
  *
- * <p>What Aurora adds on top is the part XSeries does not cover:
+ * <p>On top of that this class adds what the platform does not:
  * <ul>
  *   <li>{@link Shape} rendering, including {@linkplain ColorRamp colour ramps}
  *       sampled along the shape rather than one flat tone;</li>
@@ -33,8 +31,7 @@ import java.util.List;
  *       so a frame that draws twelve shapes resolves its viewers once;</li>
  *   <li>level of detail: point counts follow {@link RenderSettings}, so the
  *       same effect costs less on a full lobby without being rewritten;</li>
- *   <li>dust colour transitions with an automatic fallback on versions that
- *       predate them.</li>
+ *   <li>dust colour transitions, with an automatic fallback below 1.17.</li>
  * </ul>
  *
  * <p><b>This class is deliberately mutable.</b> Inside an animation you should
@@ -57,27 +54,17 @@ public class ParticleBuilder implements Cloneable {
     /** Default radius, in blocks, within which players receive the particle. */
     private static final double DEFAULT_RANGE = 32;
 
-    /**
-     * Whether {@code DUST_COLOR_TRANSITION} (1.17+) can be used. Resolved once,
-     * because every dust builder asks.
-     */
-    private static final boolean TRANSITION_SUPPORTED =
-            ParticleCompat.supported(XParticle.DUST_COLOR_TRANSITION);
+    private ParticleType type;
+    private final ParticleData data;
 
-    private final ParticleDisplay display;
+    private int count = 1;
+    private double offsetX;
+    private double offsetY;
+    private double offsetZ;
+    private double extra;
 
     private double range = DEFAULT_RANGE;
     private List<Player> viewers;
-
-    /**
-     * Colour and size are mirrored here because XSeries applies them together:
-     * calling {@code withColor(colour, size)} replaces both. Keeping the last
-     * value of each lets {@link #color(Color)} and {@link #size(float)} be
-     * chained in any order without one silently discarding the other.
-     */
-    private Color color = Color.WHITE;
-    private Color fade;
-    private float size = 1f;
 
     private double density = 1;
     private boolean levelOfDetail = true;
@@ -87,21 +74,23 @@ public class ParticleBuilder implements Cloneable {
      *
      * @param particle particle to spawn
      */
-    public ParticleBuilder(XParticle particle) {
-        this.display = ParticleCompat.display(particle);
+    public ParticleBuilder(ParticleType particle) {
+        this.type = particle;
+        this.data = new ParticleData();
     }
 
-    private ParticleBuilder(ParticleDisplay display, double range, List<Player> viewers,
-                            Color color, Color fade, float size,
-                            double density, boolean levelOfDetail) {
-        this.display = display;
-        this.range = range;
-        this.viewers = viewers;
-        this.color = color;
-        this.fade = fade;
-        this.size = size;
-        this.density = density;
-        this.levelOfDetail = levelOfDetail;
+    private ParticleBuilder(ParticleBuilder source) {
+        this.type = source.type;
+        this.data = source.data.copy();
+        this.count = source.count;
+        this.offsetX = source.offsetX;
+        this.offsetY = source.offsetY;
+        this.offsetZ = source.offsetZ;
+        this.extra = source.extra;
+        this.range = source.range;
+        this.viewers = source.viewers == null ? null : new ArrayList<>(source.viewers);
+        this.density = source.density;
+        this.levelOfDetail = source.levelOfDetail;
     }
 
     // ------------------------------------------------------------- appearance
@@ -112,24 +101,24 @@ public class ParticleBuilder implements Cloneable {
      * @param particle new particle
      * @return this builder
      */
-    public ParticleBuilder type(XParticle particle) {
-        ParticleCompat.particle(display, particle);
+    public ParticleBuilder type(ParticleType particle) {
+        this.type = particle;
         return this;
     }
 
     /**
      * Sets how many particles are spawned per point.
      *
-     * <p>A count of {@code 0} is not "none": for directional particles it makes
-     * the offset act as a velocity vector, and for colourable particles on
-     * legacy versions it is how the colour is encoded. Several effects rely on
-     * this, so it is passed through untouched.
+     * <p>A count of {@code 0} is not "none": it makes the offset act as a
+     * velocity vector, which is how vanilla shoots firework sparks and end rod
+     * streaks, and below 1.13 it is also how a colour is encoded. Several
+     * effects rely on this, so it is passed through untouched.
      *
      * @param count particle count, may be {@code 0}
      * @return this builder
      */
     public ParticleBuilder count(int count) {
-        display.withCount(count);
+        this.count = Math.max(0, count);
         return this;
     }
 
@@ -142,7 +131,9 @@ public class ParticleBuilder implements Cloneable {
      * @return this builder
      */
     public ParticleBuilder offset(double x, double y, double z) {
-        display.offset(x, y, z);
+        this.offsetX = x;
+        this.offsetY = y;
+        this.offsetZ = z;
         return this;
     }
 
@@ -153,8 +144,7 @@ public class ParticleBuilder implements Cloneable {
      * @return this builder
      */
     public ParticleBuilder offset(double all) {
-        display.offset(all);
-        return this;
+        return offset(all, all, all);
     }
 
     /**
@@ -164,21 +154,22 @@ public class ParticleBuilder implements Cloneable {
      * @return this builder
      */
     public ParticleBuilder speed(double speed) {
-        display.withExtra(speed);
+        this.extra = speed;
         return this;
     }
 
     /**
-     * Colours the particle. Only meaningful for colourable particles such as
-     * {@link XParticle#DUST}, {@link XParticle#ENTITY_EFFECT} and
-     * {@link XParticle#NOTE}.
+     * Colours the particle. Only meaningful for colourable particles:
+     * {@link ParticleType#DUST}, {@link ParticleType#DUST_COLOR_TRANSITION} and
+     * {@link ParticleType#NOTE}, which picks the nearest of its twenty-five
+     * hues.
      *
      * @param color colour to apply
      * @return this builder
      */
     public ParticleBuilder color(Color color) {
-        this.color = color;
-        return applyColor();
+        data.color(color);
+        return this;
     }
 
     /**
@@ -211,110 +202,87 @@ public class ParticleBuilder implements Cloneable {
      * @return this builder
      */
     public ParticleBuilder size(float size) {
-        this.size = size;
-        return applyColor();
+        data.size(size);
+        return this;
     }
 
     /**
-     * Colours and sizes the particle in one call, which is the only way to set
-     * a dust size without discarding the current colour.
+     * Colours and sizes the particle in one call.
      *
      * @param color colour to apply
      * @param size  dust size
      * @return this builder
      */
     public ParticleBuilder color(Color color, float size) {
-        this.color = color;
-        this.size = size;
-        return applyColor();
+        data.color(color);
+        data.size(size);
+        return this;
     }
 
     /**
      * Makes each particle fade from its colour to a second one over its
-     * lifetime, using {@code DUST_COLOR_TRANSITION}.
+     * lifetime.
      *
      * <p>This is the single cheapest way to make an effect look expensive: one
      * particle carries a gradient instead of a flat dot, so a trail cools from
-     * white to ember without spawning a second layer. The particle type is
-     * switched to {@code DUST_COLOR_TRANSITION} when it is available, and on
-     * anything below 1.17 the call degrades to plain dust in the base colour.
+     * white to ember without spawning a second layer. It needs
+     * {@code DUST_COLOR_TRANSITION}, which arrived in 1.17; below that the call
+     * degrades to plain dust in the base colour.
      *
      * @param to colour each particle fades towards, or {@code null} to go back
      *           to plain dust
      * @return this builder
      */
     public ParticleBuilder fadeTo(Color to) {
-        this.fade = to;
-        if (to != null && TRANSITION_SUPPORTED) {
-            ParticleCompat.particle(display, XParticle.DUST_COLOR_TRANSITION);
-        } else if (to == null) {
-            ParticleCompat.particle(display, XParticle.DUST);
+        data.fade(to);
+        if (to == null) {
+            if (type == ParticleType.DUST_COLOR_TRANSITION) type = ParticleType.DUST;
+        } else if (type == ParticleType.DUST) {
+            type = ParticleType.DUST_COLOR_TRANSITION;
         }
-        return applyColor();
-    }
-
-    /**
-     * Applies the current colour, size and fade to the underlying display.
-     *
-     * @return this builder
-     */
-    private ParticleBuilder applyColor() {
-        java.awt.Color base = awt(color);
-        if (fade != null && TRANSITION_SUPPORTED) display.withTransitionColor(base, size, awt(fade));
-        else display.withColor(base, size);
         return this;
     }
 
     /**
      * Sets the block the particle is textured with. Applies to
-     * {@link XParticle#BLOCK}, {@link XParticle#FALLING_DUST} and
-     * {@link XParticle#BLOCK_MARKER}.
+     * {@link ParticleType#BLOCK} and {@link ParticleType#FALLING_DUST}.
      *
      * @param material block material
      * @return this builder
      */
     public ParticleBuilder material(Material material) {
-        ParticleCompat.block(display, material);
+        data.material(material);
         return this;
     }
 
     /**
-     * Sets the item the particle is textured with, for {@link XParticle#ITEM}.
+     * Sets the item the particle is textured with, for {@link ParticleType#ITEM}.
      *
      * @param item item to shatter
      * @return this builder
      */
     public ParticleBuilder item(ItemStack item) {
-        display.withItem(item);
+        data.item(item);
         return this;
     }
 
     /**
      * Fires the particle along a direction instead of spreading it randomly.
      *
-     * <p>Directional particles ignore their count and use the offset as a
-     * velocity, which is how vanilla shoots {@code FIREWORK} sparks and
-     * {@code END_ROD} streaks. Aurora uses it for effects that need to trail
-     * behind a moving player rather than hang in the air.
+     * <p>Directional particles carry a count of zero and read their offset as a
+     * velocity, which is how vanilla shoots firework sparks. Aurora uses it for
+     * effects that need to stream behind a moving player rather than hang in
+     * the air.
      *
      * @param direction direction and speed
      * @return this builder
      */
     public ParticleBuilder direction(Vector direction) {
-        display.particleDirection(direction);
-        display.directional();
-        return this;
-    }
-
-    /**
-     * Sends the particle even to players who turned particles down in their
-     * video settings. Reserve it for effects that carry gameplay meaning.
-     *
-     * @param force {@code true} to bypass the client's particle setting
-     * @return this builder
-     */
-    public ParticleBuilder force(boolean force) {
-        display.forceSpawn(force);
+        this.count = 0;
+        this.offsetX = direction.getX();
+        this.offsetY = direction.getY();
+        this.offsetZ = direction.getZ();
+        if (extra == 0) extra = 1;
         return this;
     }
 
@@ -363,8 +331,7 @@ public class ParticleBuilder implements Cloneable {
 
     /**
      * Restricts the particle to an explicit set of players, bypassing the range
-     * check. Useful for private cosmetics, per-team effects, and for handing a
-     * whole effect frame one audience resolved once.
+     * check. Useful for private cosmetics and per-team effects.
      *
      * @param viewers players who should see it, or {@code null} to go back to
      *                range-based selection
@@ -424,15 +391,8 @@ public class ParticleBuilder implements Cloneable {
      * @param location where to spawn it
      */
     public void spawn(Location location) {
-        if (!RenderSettings.enabled()) return;
-        if (location == null || location.getWorld() == null) return;
-
-        List<Player> audience = resolve(location);
-        if (audience.isEmpty()) return;
-
-        display.withLocation(location);
-        display.onlyVisibleTo(audience);
-        display.spawn();
+        if (location == null) return;
+        spawn(location, 0, 0, 0);
     }
 
     /**
@@ -451,9 +411,9 @@ public class ParticleBuilder implements Cloneable {
         List<Player> audience = resolve(origin);
         if (audience.isEmpty()) return;
 
-        display.withLocation(origin);
-        display.onlyVisibleTo(audience);
-        display.spawn(x, y, z);
+        ParticleSender.get().spawn(audience, type,
+                origin.getX() + x, origin.getY() + y, origin.getZ() + z,
+                count, offsetX, offsetY, offsetZ, extra, data);
     }
 
     /**
@@ -493,28 +453,39 @@ public class ParticleBuilder implements Cloneable {
         List<Player> audience = resolve(origin);
         if (audience.isEmpty()) return;
 
-        display.withLocation(origin);
-        display.onlyVisibleTo(audience);
-
+        ParticleSender sender = ParticleSender.get();
         double step = levelOfDetail ? density * RenderSettings.density() : density;
         double accumulated = 0;
         double last = Math.max(1, total - 1);
+        boolean drewAny = false;
 
         for (int i = 0; i < total; i++) {
             accumulated += step;
             if (accumulated < 1) continue;
             accumulated -= 1;
 
-            if (ramp != null) {
-                color = ramp.at(i / last);
-                applyColor();
-            }
-            display.spawn(points.get(i));
+            if (ramp != null) data.color(ramp.at(i / last));
+
+            Vector point = points.get(i);
+            sender.spawn(audience, type,
+                    origin.getX() + point.getX(),
+                    origin.getY() + point.getY(),
+                    origin.getZ() + point.getZ(),
+                    count, offsetX, offsetY, offsetZ, extra, data);
+            drewAny = true;
         }
 
         // A shape sparse enough to round to nothing still deserves one point,
         // otherwise a four-point shape disappears entirely at low quality.
-        if (step < 1 && total * step < 1) display.spawn(points.get(0));
+        if (!drewAny) {
+            Vector point = points.get(0);
+            if (ramp != null) data.color(ramp.at(0));
+            sender.spawn(audience, type,
+                    origin.getX() + point.getX(),
+                    origin.getY() + point.getY(),
+                    origin.getZ() + point.getZ(),
+                    count, offsetX, offsetY, offsetZ, extra, data);
+        }
     }
 
     /**
@@ -552,17 +523,17 @@ public class ParticleBuilder implements Cloneable {
     }
 
     /**
-     * @return the underlying XSeries display, for settings Aurora does not wrap
+     * @return the particle this builder spawns
      */
-    public ParticleDisplay display() {
-        return display;
+    public ParticleType type() {
+        return type;
     }
 
     /**
      * @return the colour currently applied
      */
     public Color currentColor() {
-        return color;
+        return data.color();
     }
 
     /**
@@ -573,21 +544,7 @@ public class ParticleBuilder implements Cloneable {
      */
     @Override
     public ParticleBuilder clone() {
-        return new ParticleBuilder(display.copy(), range,
-                viewers == null ? null : new ArrayList<>(viewers),
-                color, fade, size, density, levelOfDetail);
-    }
-
-    /**
-     * XSeries works in {@link java.awt.Color}; Bukkit's own {@link Color} is
-     * what every caller has. This is the only place the two meet.
-     *
-     * @param color a Bukkit colour
-     * @return the AWT equivalent
-     */
-    private static java.awt.Color awt(Color color) {
-        if (color == null) return java.awt.Color.WHITE;
-        return new java.awt.Color(color.getRed(), color.getGreen(), color.getBlue());
+        return new ParticleBuilder(this);
     }
 
     private static int clamp(int value) {

@@ -6,8 +6,8 @@
  * in {@code onEnable} and shut down in {@code onDisable}. From there:
  *
  * <ul>
- *   <li>{@link com.ricodevvv.aurora.particle} spawns particles, backed by
- *       XSeries for cross-version support.</li>
+ *   <li>{@link com.ricodevvv.aurora.particle} spawns particles, through the
+ *       Bukkit API on 1.9 and later and through packets on 1.8.</li>
  *   <li>{@link com.ricodevvv.aurora.shape} builds the geometry those particles
  *       are drawn along.</li>
  *   <li>{@link com.ricodevvv.aurora.animation} drives everything over time from

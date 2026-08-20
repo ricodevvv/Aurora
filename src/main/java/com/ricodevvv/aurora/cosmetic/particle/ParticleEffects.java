@@ -1,6 +1,6 @@
 package com.ricodevvv.aurora.cosmetic.particle;
 
-import com.cryptomorin.xseries.particles.XParticle;
+import com.ricodevvv.aurora.particle.ParticleType;
 import com.ricodevvv.aurora.cosmetic.CosmeticRegistry;
 import com.ricodevvv.aurora.particle.ParticleBuilder;
 import com.ricodevvv.aurora.particle.Particles;
@@ -56,22 +56,22 @@ public final class ParticleEffects {
 
     // ------------------------------------------------------- shared builders
 
-    private static final ParticleBuilder DUST = Particles.of(XParticle.DUST).count(1).speed(0);
+    private static final ParticleBuilder DUST = Particles.of(ParticleType.DUST).count(1).speed(0);
 
     /** Kept apart from {@link #DUST} because it stays on the transition particle. */
     private static final ParticleBuilder FADE = Particles.dust(Color.WHITE, Color.WHITE).count(1).speed(0);
 
     private static final ParticleBuilder FLAME = Particles.flame().count(1).speed(0.01);
     private static final ParticleBuilder SOUL_FLAME = Particles.soulFlame().count(1).speed(0.01);
-    private static final ParticleBuilder CLOUD = Particles.of(XParticle.CLOUD).count(1).speed(0.01);
-    private static final ParticleBuilder SMOKE = Particles.of(XParticle.LARGE_SMOKE).count(1).speed(0.01);
-    private static final ParticleBuilder HEART = Particles.of(XParticle.HEART).count(1).speed(0);
-    private static final ParticleBuilder NOTE = Particles.of(XParticle.NOTE).count(1);
+    private static final ParticleBuilder CLOUD = Particles.of(ParticleType.CLOUD).count(1).speed(0.01);
+    private static final ParticleBuilder SMOKE = Particles.of(ParticleType.LARGE_SMOKE).count(1).speed(0.01);
+    private static final ParticleBuilder HEART = Particles.of(ParticleType.HEART).count(1).speed(0);
+    private static final ParticleBuilder NOTE = Particles.of(ParticleType.NOTE).count(1);
     private static final ParticleBuilder ENCHANT = Particles.enchant().count(1).speed(0.5);
     private static final ParticleBuilder CRIT = Particles.crit().count(1).speed(0.05);
-    private static final ParticleBuilder DRIP = Particles.of(XParticle.DRIPPING_WATER).count(1).speed(0);
-    private static final ParticleBuilder SPLASH = Particles.of(XParticle.SPLASH).count(2).offset(0.1).speed(0.05);
-    private static final ParticleBuilder PORTAL = Particles.of(XParticle.PORTAL).count(1).speed(0.4);
+    private static final ParticleBuilder DRIP = Particles.of(ParticleType.DRIPPING_WATER).count(1).speed(0);
+    private static final ParticleBuilder SPLASH = Particles.of(ParticleType.SPLASH).count(2).offset(0.1).speed(0.05);
+    private static final ParticleBuilder PORTAL = Particles.of(ParticleType.PORTAL).count(1).speed(0.4);
     private static final ParticleBuilder FIREWORK = Particles.spark().count(1).speed(0.05);
     private static final ParticleBuilder END_ROD = Particles.endRod().count(1).speed(0);
     private static final ParticleBuilder ELECTRIC = Particles.electric().count(1).speed(0);
@@ -79,7 +79,8 @@ public final class ParticleEffects {
     private static final ParticleBuilder TOTEM = Particles.totem().count(1).speed(0.05);
     private static final ParticleBuilder SOUL = Particles.soul().count(1).speed(0.02);
     private static final ParticleBuilder PETAL = Particles.petal().count(1).speed(0);
-    private static final ParticleBuilder BUBBLE = Particles.of(XParticle.BUBBLE, XParticle.SPLASH).count(1).speed(0.02);
+    private static final ParticleBuilder BUBBLE = Particles.of(ParticleType.BUBBLE).count(1).speed(0.02);
+    private static final ParticleBuilder LAVA_DRIP = Particles.of(ParticleType.DRIPPING_LAVA).count(1).speed(0);
 
     // --------------------------------------------------- precomputed geometry
 
@@ -231,8 +232,7 @@ public final class ParticleEffects {
                     if (ctx.tick() % 5 == 0) {
                         double angle = ctx.random() * TAU;
                         double radius = ctx.random() * 1.1;
-                        ctx.emit(Particles.of(XParticle.DRIPPING_LAVA, XParticle.FLAME).count(1).speed(0),
-                                Math.cos(angle) * radius, 0.9, Math.sin(angle) * radius);
+                        ctx.emit(LAVA_DRIP, Math.cos(angle) * radius, 0.9, Math.sin(angle) * radius);
                     }
                 })
                 .moving(ctx -> ctx.trail(3, (position, progress) ->
