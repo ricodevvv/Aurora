@@ -31,8 +31,11 @@ import java.util.List;
  * so merely loading it on 1.8 throws {@code NoClassDefFoundError} — which makes
  * it unusable for a library whose whole claim is one jar from 1.8 to 1.21.
  *
- * <p>Both backends fail soft. A particle that cannot be sent is skipped; it is
- * never allowed to throw out of a tick loop and take an effect down with it.
+ * <p>Both backends fail soft: a particle that cannot be sent is skipped rather
+ * than thrown out of a tick loop. Failing soft must not mean failing silently,
+ * though — a backend that cannot work says so once, loudly, at startup and
+ * names the member it could not resolve. Silence and no particles is the worst
+ * possible combination to debug from.
  */
 abstract class ParticleSender {
 
@@ -44,10 +47,33 @@ abstract class ParticleSender {
     static ParticleSender get() {
         if (instance == null) {
             instance = ServerVersion.isLegacy() ? new Legacy() : new Modern();
-            Bukkit.getLogger().info("[Aurora] Particle backend: " + instance.name()
-                    + " (" + ServerVersion.asString() + ").");
+
+            String problem = instance.problem();
+            if (problem == null) {
+                Bukkit.getLogger().info("[Aurora] Particle backend: " + instance.describe());
+            } else {
+                Bukkit.getLogger().severe("[Aurora] Particle backend is NOT WORKING: "
+                        + instance.describe() + " No particles will be visible. This usually"
+                        + " means the server is a fork whose internals differ from the version"
+                        + " it reports (" + ServerVersion.asString() + ").");
+            }
+            if (!ParticleType.DUST.isSupported()) {
+                Bukkit.getLogger().severe("[Aurora] Coloured dust did not resolve on "
+                        + ServerVersion.asString() + "; most effects will be invisible.");
+            }
         }
         return instance;
+    }
+
+    /**
+     * A line fit for the console: which backend, and whether it can work.
+     *
+     * @return the description
+     */
+    final String describe() {
+        String problem = problem();
+        return name() + " on " + ServerVersion.asString()
+                + (problem == null ? " (ready)" : " - MISSING " + problem);
     }
 
     /**
@@ -125,6 +151,13 @@ abstract class ParticleSender {
      */
     abstract String name();
 
+    /**
+     * Whether this backend actually resolved everything it needs.
+     *
+     * @return a description of what is missing, or {@code null} if it is ready
+     */
+    abstract String problem();
+
     // -------------------------------------------------------------- 1.9-1.21
 
     /**
@@ -168,6 +201,11 @@ abstract class ParticleSender {
         @Override
         String name() {
             return "Bukkit API";
+        }
+
+        @Override
+        String problem() {
+            return withData == null && plain == null ? "Player#spawnParticle" : null;
         }
     }
 
@@ -220,6 +258,21 @@ abstract class ParticleSender {
         @Override
         String name() {
             return "1.8 packets";
+        }
+
+        @Override
+        String problem() {
+            StringBuilder missing = new StringBuilder();
+            if (packet == null) append(missing, "PacketPlayOutWorldParticle constructor");
+            if (getHandle == null) append(missing, "CraftPlayer#getHandle");
+            if (connectionField == null) append(missing, "EntityPlayer#playerConnection");
+            if (sendPacket == null) append(missing, "PlayerConnection#sendPacket");
+            return missing.length() == 0 ? null : missing.toString();
+        }
+
+        private static void append(StringBuilder target, String name) {
+            if (target.length() > 0) target.append(", ");
+            target.append(name);
         }
     }
 }

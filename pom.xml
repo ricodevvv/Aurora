@@ -34,8 +34,15 @@
     </scm>
 
     <properties>
-        <maven.compiler.source>17</maven.compiler.source>
-        <maven.compiler.target>17</maven.compiler.target>
+        <!--
+            Java 8 bytecode, not Java 17. This is not a style choice: a 1.8.8
+            server runs on a Java 8 JVM, and a Java 8 JVM cannot load a class
+            file built for 17 — it throws UnsupportedClassVersionError before
+            any Aurora code runs, which looks from the outside like "the
+            particles do nothing". Build with any JDK from 8 to 21; the
+            release flag makes it compile against the Java 8 API either way.
+        -->
+        <maven.compiler.release>8</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
@@ -108,7 +115,7 @@
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <version>3.11.2</version>
                 <configuration>
-                    <source>17</source>
+                    <source>8</source>
                     <doclint>all,-missing</doclint>
                     <quiet>true</quiet>
                     <excludePackageNames>com.ricodevvv.aurora.example</excludePackageNames>
